@@ -1,0 +1,14 @@
+services:
+  gateway:
+    build: ./gateway
+    container_name: openclaw-gateway
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+
+  clawdbot:
+    build: ./clawdbot
+    container_name: clawdbot
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env

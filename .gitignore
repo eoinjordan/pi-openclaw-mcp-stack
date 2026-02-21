@@ -1,0 +1,4 @@
+.env
+workspace/.arduino15/
+node_modules/
+*.log
