@@ -134,8 +134,10 @@ Telegram -> clawdbot -> openclaw-gateway
 - `health`
 - `validate arduino`
 - `build arduino`
+- `models`
 
 If `OPENAI_API_KEY` is set, non-command messages are forwarded to OpenAI chat.
+If using Ollama, set `OPENAI_MODEL` to an installed model (for example `qwen2.5:3b-instruct`).
 
 ## Telegram Bot Setup (BotFather)
 
@@ -209,6 +211,14 @@ Then restart:
 ```bash
 docker compose restart clawdbot
 ```
+
+Check installed models:
+
+```bash
+ollama list
+```
+
+In Telegram, send `models` to verify what `clawdbot` sees.
 
 ## Built-in Codex Skills
 

@@ -55,9 +55,11 @@ docker compose restart clawdbot
 
 ```bash
 curl -s http://127.0.0.1:11434/api/tags
+ollama list
 ```
 
 ## Notes
 
 - This only changes free-text chat behavior in `clawdbot`.
 - MCP tool routing (`/arduino/*`, `/ei/run`) is unchanged.
+- In Telegram, send `models` to check the active model and discovered Ollama models.

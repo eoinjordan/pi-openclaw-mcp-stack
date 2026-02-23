@@ -75,6 +75,28 @@ wait_for_http() {
   return 1
 }
 
+ensure_blink_example() {
+  local sketch_dir="$ROOT_DIR/workspace/Arduino/Blink"
+  local sketch_file="$sketch_dir/Blink.ino"
+  if [[ -f "$sketch_file" ]]; then
+    return 0
+  fi
+  mkdir -p "$sketch_dir"
+  cat > "$sketch_file" <<'EOF'
+void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+}
+
+void loop() {
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(250);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(250);
+}
+EOF
+  echo "Created default sketch at $sketch_file"
+}
+
 echo "[1/7] Installing Docker base packages..."
 sudo apt-get update
 sudo apt-get install -y docker.io curl ca-certificates
@@ -112,13 +134,16 @@ if [[ ! -f ".env" ]]; then
   cp .env.example .env
 fi
 
-echo "[5/7] Ensuring only one EI bridge profile is active..."
+echo "[5/7] Ensuring default Arduino sketch exists..."
+ensure_blink_example
+
+echo "[6/7] Ensuring only one EI bridge profile is active..."
 compose_cmd stop ei-mcp-bridge ei-mcp-bridge-local ei-mcp-bridge-image >/dev/null 2>&1 || true
 
-echo "[6/7] Starting stack with mode: $MODE"
+echo "[7/7] Starting stack with mode: $MODE"
 compose_cmd --profile "$MODE" up -d --build
 
-echo "[7/7] Waiting for services and running health checks..."
+echo "[8/8] Waiting for services and running health checks..."
 if ! wait_for_http "gateway" "http://127.0.0.1:3000/health" 60 2; then
   BRIDGE_SERVICE="$(active_bridge_service)"
   echo
