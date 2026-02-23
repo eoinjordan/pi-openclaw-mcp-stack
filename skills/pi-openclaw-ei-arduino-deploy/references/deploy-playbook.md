@@ -29,3 +29,16 @@ curl -L -H "x-api-key: ${EI_API_KEY}" -o outputs/ei_arduino_deployment.zip "http
 ```bash
 curl -sS -X POST http://127.0.0.1:3000/arduino/validate -H 'Content-Type: application/json' -d '{"projectRoot":"/workspace/Blink"}'
 ```
+
+## 5) Build local sketch through Arduino MCP
+
+```bash
+curl -sS -X POST http://127.0.0.1:3000/arduino/build -H 'Content-Type: application/json' -d '{"projectRoot":"/workspace/Blink"}'
+```
+
+## 6) Hand off to flash
+
+- Continue with `$pi-openclaw-arduino-flash` using:
+  - `projectRoot=/workspace/Blink`
+  - `fqbn=arduino:mbed_nano:nano33ble`
+  - detected port (for example `/dev/ttyACM0`)

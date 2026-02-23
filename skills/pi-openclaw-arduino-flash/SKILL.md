@@ -1,6 +1,6 @@
 ---
 name: pi-openclaw-arduino-flash
-description: Flash firmware to Arduino boards in the pi-openclaw-mcp-stack workflow after successful build/deployment. Use when users need serial port detection, board/FQBN checks, upload commands for Nano 33 BLE, or post-flash verification.
+description: Flash firmware to Arduino boards in the pi-openclaw-mcp-stack workflow after successful build/deployment. Use when users need serial port detection, board/FQBN checks, upload commands for Nano 33 BLE, post-flash verification, or EI deployment handoff completion.
 ---
 
 # Pi OpenClaw Arduino Flash
@@ -8,6 +8,7 @@ description: Flash firmware to Arduino boards in the pi-openclaw-mcp-stack workf
 1. Confirm firmware source and build state.
 - Use `references/flash-playbook.md` to verify sketch/artifact and compile status first.
 - Do not flash before a successful compile.
+- Accept handoff inputs from `$pi-openclaw-ei-arduino-deploy` (`projectRoot`, `bundleArtifact`, `fqbn`, `port`).
 
 2. Detect board connection and serial port on Pi.
 - Use `references/serial-port-checks.md` to identify `/dev/tty*` and permission issues.

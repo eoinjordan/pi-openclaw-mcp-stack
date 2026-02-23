@@ -1,6 +1,6 @@
 ---
 name: pi-openclaw-ei-arduino-deploy
-description: Run combined Edge Impulse MCP and Arduino MCP deployment workflows in pi-openclaw-mcp-stack. Use when users need to build an Arduino deployment package from an Edge Impulse impulse, check job status, download artifacts, or validate/build sketches for Nano 33 BLE.
+description: Run combined Edge Impulse MCP and Arduino MCP deployment workflows in pi-openclaw-mcp-stack. Use when users need to build an Arduino deployment package from an Edge Impulse impulse, bundle it for Arduino build, validate/build through Arduino MCP, and hand off to flash workflow for Nano 33 BLE deployment.
 ---
 
 # Pi OpenClaw EI Arduino Deploy
@@ -24,14 +24,22 @@ description: Run combined Edge Impulse MCP and Arduino MCP deployment workflows 
 6. Download generated deployment artifact.
 - Save zip under local `outputs/`.
 
-7. Validate Arduino project with Arduino MCP.
+7. Bundle and prepare Arduino project handoff.
+- Use `references/handoff-build-flash.md` to stage ZIP/library output for compile.
+- Keep artifact path and project root explicit.
+
+8. Validate Arduino project with Arduino MCP.
 - Use `/arduino/validate` and `/arduino/build` as needed.
 
-8. Report outcome.
-- Include project ID, job ID, artifact path, and compile status.
+9. Hand off to flash workflow.
+- Invoke `$pi-openclaw-arduino-flash` with project root, fqbn, and target port.
+
+10. Report outcome.
+- Include project ID, job ID, artifact path, compile status, and flash handoff result.
 
 ## References
 - `references/edge-impulse-doc-scope.md`
 - `references/project-settings-checklist.md`
 - `references/deploy-playbook.md`
 - `references/api-call-snippets.md`
+- `references/handoff-build-flash.md`

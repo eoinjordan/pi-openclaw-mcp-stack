@@ -12,6 +12,10 @@ curl -sS -X POST http://127.0.0.1:3000/ei/run -H 'Content-Type: application/json
 curl -sS -X POST http://127.0.0.1:3000/arduino/build -H 'Content-Type: application/json' -d '{"projectRoot":"/workspace/Blink"}'
 ```
 
+## Flash handoff reminder
+
+After successful build, invoke `$pi-openclaw-arduino-flash` with project root, fqbn, and serial port.
+
 ## Gateway health
 
 ```bash

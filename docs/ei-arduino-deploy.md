@@ -41,3 +41,9 @@ curl -sS -X POST http://127.0.0.1:3000/arduino/validate \
   -H 'Content-Type: application/json' \
   -d '{"projectRoot":"/workspace/Blink"}'
 ```
+
+## 6) Flash to hardware
+
+After build/validate succeeds, use the flash workflow:
+- Codex skill: `$pi-openclaw-arduino-flash`
+- Inputs: `projectRoot`, `fqbn`, and detected serial port (`/dev/ttyACM*`).
