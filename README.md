@@ -95,8 +95,10 @@ Notes:
 - On first run, startup can take longer while containers install dependencies.
 - In `mcp-local` or `mcp` mode, replace `mcp-image` with your active profile.
 - If `ei-mcp-bridge-image` shows `Restarting (127)` with repeated `No such file or directory`, set:
-  - `EI_MCP_BASE_IMAGE=docker.io/eoinedge/ei-agentic-claude-mcp:latest`
+  - `EI_MCP_BASE_IMAGE=docker.io/eoinedge/ei-agentic-claude-mcp:test`
   - then run `docker compose --profile mcp-image up -d --build --force-recreate`
+- If build fails with `docker.io/eoinedge/ei-agentic-claude-mcp:latest: not found`, use:
+  - `EI_MCP_BASE_IMAGE=docker.io/eoinedge/ei-agentic-claude-mcp:test`
 
 ## Why this script exists
 

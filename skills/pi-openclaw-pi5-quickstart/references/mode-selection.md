@@ -12,7 +12,7 @@ docker compose --profile mcp-image up -d --build
 Set image tag in `.env` when needed:
 
 ```env
-EI_MCP_BASE_IMAGE=docker.io/eoinedge/ei-agentic-claude-mcp:latest
+EI_MCP_BASE_IMAGE=docker.io/eoinedge/ei-agentic-claude-mcp:test
 ```
 
 ## mcp-local

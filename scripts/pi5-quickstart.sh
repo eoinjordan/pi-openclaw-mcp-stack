@@ -97,13 +97,45 @@ EOF
   echo "Created default sketch at $sketch_file"
 }
 
-echo "[1/7] Installing Docker base packages..."
+ensure_ei_mcp_base_image() {
+  if [[ "$MODE" != "mcp-image" ]]; then
+    return 0
+  fi
+
+  local configured
+  local fallback="docker.io/eoinedge/ei-agentic-claude-mcp:test"
+  configured="$(grep -E '^EI_MCP_BASE_IMAGE=' .env | tail -n1 | cut -d= -f2- || true)"
+  configured="${configured:-$fallback}"
+
+  if sudo docker manifest inspect "$configured" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if [[ "$configured" != "$fallback" ]] && sudo docker manifest inspect "$fallback" >/dev/null 2>&1; then
+    echo "Configured EI_MCP_BASE_IMAGE not found: $configured"
+    echo "Switching to fallback: $fallback"
+    if grep -q '^EI_MCP_BASE_IMAGE=' .env; then
+      sed -i "s|^EI_MCP_BASE_IMAGE=.*|EI_MCP_BASE_IMAGE=$fallback|" .env
+    else
+      echo "EI_MCP_BASE_IMAGE=$fallback" >> .env
+    fi
+    return 0
+  fi
+
+  echo "ERROR: Could not resolve EI MCP base image."
+  echo "Checked: $configured"
+  echo "Fallback also missing: $fallback"
+  echo "Set EI_MCP_BASE_IMAGE in .env to a valid tag and re-run."
+  return 1
+}
+
+echo "[1/9] Installing Docker base packages..."
 sudo apt-get update
 sudo apt-get install -y docker.io curl ca-certificates
 sudo systemctl enable --now docker
 sudo usermod -aG docker "$USER" || true
 
-echo "[2/7] Installing Compose plugin fallback chain..."
+echo "[2/9] Installing Compose plugin fallback chain..."
 if ! detect_compose; then
   install_optional_package docker-compose-plugin || true
   install_optional_package docker-compose-v2 || true
@@ -118,7 +150,7 @@ if ! detect_compose; then
 fi
 echo "Compose detected: $COMPOSE_TYPE"
 
-echo "[3/7] Installing Buildx plugin fallback chain..."
+echo "[3/9] Installing Buildx plugin fallback chain..."
 if ! sudo docker buildx version >/dev/null 2>&1; then
   install_optional_package docker-buildx-plugin || true
   install_optional_package docker-buildx || true
@@ -130,20 +162,23 @@ else
 fi
 
 if [[ ! -f ".env" ]]; then
-  echo "[4/7] Creating .env from .env.example..."
+  echo "[4/9] Creating .env from .env.example..."
   cp .env.example .env
 fi
 
-echo "[5/7] Ensuring default Arduino sketch exists..."
+echo "[5/9] Ensuring default Arduino sketch exists..."
 ensure_blink_example
 
-echo "[6/7] Ensuring only one EI bridge profile is active..."
+echo "[6/9] Ensuring EI MCP base image is reachable..."
+ensure_ei_mcp_base_image
+
+echo "[7/9] Ensuring only one EI bridge profile is active..."
 compose_cmd stop ei-mcp-bridge ei-mcp-bridge-local ei-mcp-bridge-image >/dev/null 2>&1 || true
 
-echo "[7/7] Starting stack with mode: $MODE"
+echo "[8/9] Starting stack with mode: $MODE"
 compose_cmd --profile "$MODE" up -d --build
 
-echo "[8/8] Waiting for services and running health checks..."
+echo "[9/9] Waiting for services and running health checks..."
 if ! wait_for_http "gateway" "http://127.0.0.1:3000/health" 60 2; then
   BRIDGE_SERVICE="$(active_bridge_service)"
   echo
