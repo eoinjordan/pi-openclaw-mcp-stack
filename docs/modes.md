@@ -6,6 +6,7 @@ Choose one EI bridge mode at a time:
 - `mcp-image`
 
 Arduino MCP is included for all three profiles.
+By default it uses `docker.io/eoinedge/arduino-mcp:latest` (`ARDUINO_MCP_IMAGE` in `.env`).
 
 ## mcp-image (recommended)
 

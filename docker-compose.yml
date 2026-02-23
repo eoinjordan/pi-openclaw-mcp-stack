@@ -50,7 +50,7 @@ services:
       EI_MCP_ARGS: ${EI_MCP_ARGS_IMAGE:-/app/dist/mcp-server.js}
 
   arduino-mcp:
-    image: node:20-bookworm-slim
+    image: ${ARDUINO_MCP_IMAGE:-docker.io/eoinedge/arduino-mcp:latest}
     container_name: arduino-mcp
     restart: unless-stopped
     network_mode: host
@@ -58,7 +58,7 @@ services:
     environment:
       PORT: 3080
       ARDUINO_FQBN: arduino:mbed_nano:nano33ble
+      ARDUINO_AUTO_INSTALL_CORE: ${ARDUINO_AUTO_INSTALL_CORE:-1}
     volumes:
       - ./workspace/Arduino:/workspace
       - ./workspace/.arduino15:/root/.arduino15
-    command: bash -lc "npm i -g arduino-claude-mcp && node $(npm root -g)/arduino-claude-mcp/dist/index.js"

@@ -11,6 +11,7 @@ Raspberry Pi 5 stack for running `clawdbot`, Arduino MCP, and Edge Impulse MCP t
 | `mcp` | No prebuilt MCP image | npm install inside bridge image | `docker compose --profile mcp up -d --build` |
 
 Use only one EI bridge mode at a time (`mcp`, `mcp-local`, or `mcp-image`).
+Arduino MCP uses prebuilt image `docker.io/eoinedge/arduino-mcp:latest` by default (`ARDUINO_MCP_IMAGE` in `.env`).
 
 ## Quickstart (Pi 5, New Users)
 
