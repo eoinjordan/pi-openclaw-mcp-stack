@@ -28,6 +28,13 @@ Testing tag example in `.env`:
 EI_MCP_BASE_IMAGE=docker.io/eoinedge/ei-agentic-claude-mcp:test
 ```
 
+If `ei-mcp-bridge-image` restarts with exit `127` and logs show repeated `No such file or directory`, switch back to:
+
+```bash
+EI_MCP_BASE_IMAGE=docker.io/eoinedge/ei-agentic-claude-mcp:latest
+docker compose --profile mcp-image up -d --build --force-recreate
+```
+
 ## mcp-local
 
 Uses local checked-out `ei-agentic-claude` from host path.

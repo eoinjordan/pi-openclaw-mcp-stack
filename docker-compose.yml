@@ -45,6 +45,7 @@ services:
     network_mode: host
     env_file: .env
     profiles: ["mcp-image"]
+    entrypoint: ["node", "/app/server.cjs"]
     environment:
       EI_MCP_BIN: ${EI_MCP_BIN_IMAGE:-node}
       EI_MCP_ARGS: ${EI_MCP_ARGS_IMAGE:-/app/dist/mcp-server.js}

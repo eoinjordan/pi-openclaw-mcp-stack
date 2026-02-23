@@ -94,6 +94,9 @@ curl -s http://127.0.0.1:3000/health/upstreams
 Notes:
 - On first run, startup can take longer while containers install dependencies.
 - In `mcp-local` or `mcp` mode, replace `mcp-image` with your active profile.
+- If `ei-mcp-bridge-image` shows `Restarting (127)` with repeated `No such file or directory`, set:
+  - `EI_MCP_BASE_IMAGE=docker.io/eoinedge/ei-agentic-claude-mcp:latest`
+  - then run `docker compose --profile mcp-image up -d --build --force-recreate`
 
 ## Why this script exists
 
@@ -219,6 +222,11 @@ ollama list
 ```
 
 In Telegram, send `models` to verify what `clawdbot` sees.
+If you see `no configuration file provided: not found`, run compose commands from the repo root:
+
+```bash
+cd ~/pi-openclaw-mcp-stack
+```
 
 ## Built-in Codex Skills
 
