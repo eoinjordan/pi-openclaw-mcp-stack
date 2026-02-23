@@ -228,5 +228,6 @@ This repo includes Codex skills for Pi users under `skills/`.
 - `$pi-openclaw-flow-audit` for routing and health troubleshooting.
 - `$pi-openclaw-chat-providers` for Telegram and Ollama/OpenAI provider setup.
 - `$pi-openclaw-ei-arduino-deploy` for Edge Impulse to Arduino deployment flow.
+- `$pi-openclaw-arduino-flash` for serial-port-aware firmware upload to hardware after build.
 
 Skill discovery rules are in `AGENTS.md`.

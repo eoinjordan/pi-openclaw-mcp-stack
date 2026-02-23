@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arduino Flash"
+  short_description: "Flash built firmware to Arduino on Pi"
+  default_prompt: "Use $pi-openclaw-arduino-flash to detect serial port and upload firmware to Nano 33 BLE."
