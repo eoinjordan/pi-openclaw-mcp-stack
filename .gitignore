@@ -2,3 +2,4 @@
 workspace/
 node_modules/
 *.log
+issues.md

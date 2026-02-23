@@ -45,8 +45,11 @@ bot.on('message', async (msg) => {
     }
 
     if (cmd === 'health') {
-      const r = await axios.get(`${GATEWAY_URL}/health`, { timeout: 10_000 })
-      await bot.sendMessage(chatId, 'Gateway:\n' + JSON.stringify(r.data, null, 2))
+      const r = await axios.get(`${GATEWAY_URL}/health/upstreams`, {
+        timeout: 15_000,
+        validateStatus: () => true
+      })
+      await bot.sendMessage(chatId, `Stack health (${r.status}):\n` + JSON.stringify(r.data, null, 2))
       return
     }
 

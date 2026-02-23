@@ -7,11 +7,45 @@ const app = express()
 app.use(express.json())
 
 const PORT = Number(process.env.GATEWAY_PORT || 3000)
+const LOG_REQUESTS = (process.env.GATEWAY_LOG_REQUESTS || '').trim() === '1'
 
 const ARDUINO_MCP = process.env.ARDUINO_MCP || 'http://127.0.0.1:3080'
 const EI_MCP = process.env.EI_MCP || 'http://127.0.0.1:8090'
 
+if (LOG_REQUESTS) {
+  app.use((req, _res, next) => {
+    console.log(`[gateway] ${req.method} ${req.path}`)
+    next()
+  })
+}
+
 app.get('/health', (_req, res) => res.json({ status: 'ok' }))
+
+async function checkUpstreamHealth(baseUrl) {
+  try {
+    const r = await axios.get(`${baseUrl}/health`, { timeout: 5_000 })
+    return { ok: true, status: r.status, data: r.data }
+  } catch (e) {
+    return {
+      ok: false,
+      status: e?.response?.status || null,
+      error: e?.response?.data || e?.message || String(e)
+    }
+  }
+}
+
+app.get('/health/upstreams', async (_req, res) => {
+  const [arduino, ei] = await Promise.all([
+    checkUpstreamHealth(ARDUINO_MCP),
+    checkUpstreamHealth(EI_MCP)
+  ])
+  const healthy = arduino.ok && ei.ok
+  res.status(healthy ? 200 : 503).json({
+    status: healthy ? 'ok' : 'degraded',
+    arduino,
+    ei
+  })
+})
 
 function sendAxiosError(res, e) {
   const status = e?.response?.status || 500

@@ -21,12 +21,40 @@ services:
     env_file: .env
     profiles: ["mcp"]
 
+  ei-mcp-bridge-local:
+    build: ./ei-mcp-bridge
+    container_name: ei-mcp-bridge-local
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    profiles: ["mcp-local"]
+    environment:
+      EI_MCP_BIN: ${EI_MCP_BIN_LOCAL:-node}
+      EI_MCP_ARGS: ${EI_MCP_ARGS_LOCAL:-/opt/ei-agentic-claude/dist/mcp-server.js}
+    volumes:
+      - ${EI_AGENTIC_CLAUDE_PATH:-/home/pi/ei-agentic-claude}:/opt/ei-agentic-claude:ro
+
+  ei-mcp-bridge-image:
+    build:
+      context: ./ei-mcp-bridge
+      dockerfile: Dockerfile.image
+      args:
+        EI_MCP_BASE_IMAGE: ${EI_MCP_BASE_IMAGE:-ei-agentic-claude-mcp:latest}
+    container_name: ei-mcp-bridge-image
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    profiles: ["mcp-image"]
+    environment:
+      EI_MCP_BIN: ${EI_MCP_BIN_IMAGE:-node}
+      EI_MCP_ARGS: ${EI_MCP_ARGS_IMAGE:-/app/dist/mcp-server.js}
+
   arduino-mcp:
     image: node:20-bookworm-slim
     container_name: arduino-mcp
     restart: unless-stopped
     network_mode: host
-    profiles: ["mcp"]
+    profiles: ["mcp", "mcp-local", "mcp-image"]
     environment:
       PORT: 3080
       ARDUINO_FQBN: arduino:mbed_nano:nano33ble
