@@ -1,0 +1,4 @@
+interface:
+  display_name: "Chat Providers"
+  short_description: "Set Telegram plus Ollama/OpenAI chat config"
+  default_prompt: "Use $pi-openclaw-chat-providers to configure BotFather token and switch clawdbot chat backend."

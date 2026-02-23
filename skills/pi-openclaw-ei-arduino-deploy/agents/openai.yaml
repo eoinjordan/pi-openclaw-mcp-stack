@@ -1,0 +1,4 @@
+interface:
+  display_name: "EI Arduino Deploy"
+  short_description: "Deploy Edge Impulse models to Arduino flow"
+  default_prompt: "Use $pi-openclaw-ei-arduino-deploy to build an EI Arduino deployment and verify compile output."

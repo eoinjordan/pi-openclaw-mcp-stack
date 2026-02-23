@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow Audit"
+  short_description: "Trace and debug MCP routing and health"
+  default_prompt: "Use $pi-openclaw-flow-audit to trace a failing request across gateway, bridge, and MCP services."

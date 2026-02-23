@@ -49,6 +49,32 @@ compose_cmd() {
   fi
 }
 
+active_bridge_service() {
+  case "$MODE" in
+    mcp-image) echo "ei-mcp-bridge-image" ;;
+    mcp-local) echo "ei-mcp-bridge-local" ;;
+    mcp) echo "ei-mcp-bridge" ;;
+  esac
+}
+
+wait_for_http() {
+  local name="$1"
+  local url="$2"
+  local attempts="${3:-45}"
+  local delay_s="${4:-2}"
+  local i
+
+  for ((i=1; i<=attempts; i++)); do
+    if curl -fsS "$url" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep "$delay_s"
+  done
+
+  echo "Timed out waiting for $name at $url"
+  return 1
+}
+
 echo "[1/7] Installing Docker base packages..."
 sudo apt-get update
 sudo apt-get install -y docker.io curl ca-certificates
@@ -92,7 +118,26 @@ compose_cmd stop ei-mcp-bridge ei-mcp-bridge-local ei-mcp-bridge-image >/dev/nul
 echo "[6/7] Starting stack with mode: $MODE"
 compose_cmd --profile "$MODE" up -d --build
 
-echo "[7/7] Health checks..."
+echo "[7/7] Waiting for services and running health checks..."
+if ! wait_for_http "gateway" "http://127.0.0.1:3000/health" 60 2; then
+  BRIDGE_SERVICE="$(active_bridge_service)"
+  echo
+  echo "Gateway did not become ready in time. Snapshot:"
+  compose_cmd --profile "$MODE" ps || true
+  echo
+  echo "Recent logs:"
+  compose_cmd --profile "$MODE" logs --tail 80 gateway || true
+  compose_cmd --profile "$MODE" logs --tail 80 clawdbot || true
+  compose_cmd --profile "$MODE" logs --tail 80 arduino-mcp || true
+  compose_cmd --profile "$MODE" logs --tail 120 "$BRIDGE_SERVICE" || true
+  echo
+  echo "Retry commands:"
+  echo "  docker compose --profile $MODE up -d --build"
+  echo "  docker compose --profile $MODE ps"
+  echo "  docker compose --profile $MODE logs --tail 120 gateway"
+  exit 1
+fi
+
 curl -fsS http://127.0.0.1:3000/health
 echo
 curl -fsS http://127.0.0.1:3000/health/upstreams || true

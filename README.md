@@ -38,6 +38,62 @@ curl -s http://127.0.0.1:3000/health
 curl -s http://127.0.0.1:3000/health/upstreams
 ```
 
+## Start And Restart Commands
+
+Run these from repo root (`~/pi-openclaw-mcp-stack`). Use one profile at a time.
+
+Start selected mode:
+
+```bash
+docker compose --profile mcp-image up -d --build
+# or
+# docker compose --profile mcp-local up -d --build
+# docker compose --profile mcp up -d --build
+```
+
+Restart everything in active mode:
+
+```bash
+docker compose --profile mcp-image restart
+```
+
+Restart individual services:
+
+```bash
+docker compose restart openclaw-gateway clawdbot
+docker compose restart arduino-mcp
+docker compose restart ei-mcp-bridge-image
+```
+
+Reload after `.env` changes:
+
+```bash
+docker compose --profile mcp-image up -d --force-recreate
+```
+
+Stop or remove stack:
+
+```bash
+docker compose --profile mcp-image stop
+docker compose --profile mcp-image down
+```
+
+If first boot prints `curl: (7) Failed to connect to 127.0.0.1 port 3000`:
+
+```bash
+sudo systemctl enable --now docker
+systemctl is-active docker
+docker compose --profile mcp-image up -d --build
+docker compose --profile mcp-image ps
+docker compose --profile mcp-image logs --tail 120 gateway
+curl -s http://127.0.0.1:3000/health
+curl -s http://127.0.0.1:3000/health/upstreams
+```
+
+Notes:
+- On first run, startup can take longer while containers install dependencies.
+- In `mcp-local` or `mcp` mode, replace `mcp-image` with your active profile.
+
 ## Why this script exists
 
 Some Raspberry Pi OS images do not include `docker-buildx-plugin` or `docker-compose-plugin` packages by name.
@@ -69,6 +125,7 @@ Telegram -> clawdbot -> openclaw-gateway
 - Architecture deep dive: `docs/architecture.md`
 - EI to Nano 33 BLE deployment flow: `docs/ei-arduino-deploy.md`
 - Local Ollama setup for Pi 5: `docs/ollama.md`
+- Edge Impulse docs index (for deployment and project settings): `https://docs.edgeimpulse.com/llms.txt`
 
 ## Telegram commands
 
@@ -78,6 +135,55 @@ Telegram -> clawdbot -> openclaw-gateway
 - `build arduino`
 
 If `OPENAI_API_KEY` is set, non-command messages are forwarded to OpenAI chat.
+
+## Telegram Bot Setup (BotFather)
+
+1. In Telegram, open `@BotFather`.
+2. Create bot:
+
+```text
+/newbot
+```
+
+3. Set a bot name and username (username must end with `bot`).
+4. Copy the token from BotFather (`123456789:AA...`).
+5. On Pi, set token in `.env`:
+
+```bash
+cd ~/pi-openclaw-mcp-stack
+nano .env
+```
+
+```env
+TELEGRAM_TOKEN=123456789:AA...
+```
+
+6. Optional command menu in Telegram:
+
+```text
+/setcommands
+```
+
+Paste:
+
+```text
+help - Show commands
+health - Check stack health
+validate arduino - Validate default sketch
+build arduino - Build default sketch
+```
+
+7. Restart and test:
+
+```bash
+docker compose restart clawdbot
+docker logs --tail 100 clawdbot
+```
+
+Then in Telegram send:
+- `/start`
+- `help`
+- `health`
 
 ## Local LLM (Ollama on Pi 5)
 
@@ -102,3 +208,14 @@ Then restart:
 ```bash
 docker compose restart clawdbot
 ```
+
+## Built-in Codex Skills
+
+This repo includes Codex skills for Pi users under `skills/`.
+
+- `$pi-openclaw-pi5-quickstart` for first-time setup and mode selection.
+- `$pi-openclaw-flow-audit` for routing and health troubleshooting.
+- `$pi-openclaw-chat-providers` for Telegram and Ollama/OpenAI provider setup.
+- `$pi-openclaw-ei-arduino-deploy` for Edge Impulse to Arduino deployment flow.
+
+Skill discovery rules are in `AGENTS.md`.

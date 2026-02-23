@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pi5 Stack Quickstart"
+  short_description: "Bootstrap this stack on Raspberry Pi 5"
+  default_prompt: "Use $pi-openclaw-pi5-quickstart to install prerequisites, choose a mode, and bring up the stack on a fresh Pi 5."
