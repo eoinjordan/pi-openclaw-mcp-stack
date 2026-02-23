@@ -6,10 +6,17 @@ const OpenAI = require('openai')
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL
 if (!TELEGRAM_TOKEN) throw new Error('Missing TELEGRAM_TOKEN')
 
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true })
-const openai = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null
+const hasChatProvider = Boolean(OPENAI_API_KEY || OPENAI_BASE_URL)
+const openai = hasChatProvider
+  ? new OpenAI({
+      apiKey: OPENAI_API_KEY || 'ollama',
+      ...(OPENAI_BASE_URL ? { baseURL: OPENAI_BASE_URL } : {})
+    })
+  : null
 
 const GATEWAY_URL = process.env.GATEWAY_URL || 'http://127.0.0.1:3000'
 const DEFAULT_PROJECT_ROOT = process.env.DEFAULT_ARDUINO_PROJECT_ROOT || '/workspace/Blink'
@@ -76,7 +83,7 @@ bot.on('message', async (msg) => {
     if (!openai) {
       await bot.sendMessage(
         chatId,
-        'OpenAI chat is disabled. Set OPENAI_API_KEY to enable chat, or send "help".'
+        'Chat is disabled. Set OPENAI_API_KEY or OPENAI_BASE_URL, or send "help".'
       )
       return
     }

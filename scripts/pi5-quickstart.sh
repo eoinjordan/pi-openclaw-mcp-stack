@@ -103,7 +103,7 @@ if grep -q "REPLACE_ME" .env; then
   echo "Update .env before full use:"
   echo "- TELEGRAM_TOKEN"
   echo "- EI_API_KEY"
-  echo "- optional OPENAI_API_KEY"
+  echo "- optional OPENAI_API_KEY (remote) or OPENAI_BASE_URL (local Ollama)"
 fi
 
 echo

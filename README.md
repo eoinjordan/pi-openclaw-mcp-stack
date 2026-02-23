@@ -23,7 +23,7 @@ bash scripts/pi5-quickstart.sh mcp-image
 Then set keys in `.env`:
 - `TELEGRAM_TOKEN`
 - `EI_API_KEY`
-- optional: `OPENAI_API_KEY`
+- optional: `OPENAI_API_KEY` (remote provider) or `OPENAI_BASE_URL` (local Ollama)
 
 Re-run:
 
@@ -68,6 +68,7 @@ Telegram -> clawdbot -> openclaw-gateway
 - Observability and flow tracing: `docs/observability.md`
 - Architecture deep dive: `docs/architecture.md`
 - EI to Nano 33 BLE deployment flow: `docs/ei-arduino-deploy.md`
+- Local Ollama setup for Pi 5: `docs/ollama.md`
 
 ## Telegram commands
 
@@ -77,3 +78,27 @@ Telegram -> clawdbot -> openclaw-gateway
 - `build arduino`
 
 If `OPENAI_API_KEY` is set, non-command messages are forwarded to OpenAI chat.
+
+## Local LLM (Ollama on Pi 5)
+
+Install and run Ollama:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama serve
+ollama pull qwen2.5:3b-instruct
+```
+
+Set `.env` for local chat via OpenAI-compatible endpoint:
+
+```env
+OPENAI_BASE_URL=http://127.0.0.1:11434/v1
+OPENAI_API_KEY=ollama
+OPENAI_MODEL=qwen2.5:3b-instruct
+```
+
+Then restart:
+
+```bash
+docker compose restart clawdbot
+```

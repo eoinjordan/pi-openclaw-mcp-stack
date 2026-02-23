@@ -5,3 +5,4 @@
 - Runtime architecture: `architecture.md`
 - Logs and health tracing: `observability.md`
 - Edge Impulse to Nano 33 BLE deployment: `ei-arduino-deploy.md`
+- Local Ollama setup and env wiring: `ollama.md`
