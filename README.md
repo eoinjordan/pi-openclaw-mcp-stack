@@ -238,3 +238,9 @@ Send message:
 - build arduino
 
 If `OPENAI_API_KEY` is set, other messages are forwarded to OpenAI chat.
+
+Channels & LLM options
+----------------------
+This repo was used with Telegram and Anthropic, but you can swap both sides:
+- Channels: Telegram, WhatsApp (via OpenClaw), Slack, Discord, SMS (Twilio), Matrix, Signal, or simple webhooks.
+- LLMs: Anthropic, OpenAI, local models (Ollama), or routing layers (OpenRouter).
