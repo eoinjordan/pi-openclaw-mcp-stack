@@ -22,6 +22,40 @@ Target runtime
 - Production target is Raspberry Pi 5 (`linux/arm64`).
 - Windows/macOS Docker Desktop runs are useful for flow validation, but images built there are typically `amd64`.
 
+Choose your mode
+----------------
+
+| Mode | Best for | EI MCP source | Start command |
+| --- | --- | --- | --- |
+| `mcp-image` (Recommended) | New users, easiest setup | `ei-agentic-claude-mcp:latest` image | `docker compose --profile mcp-image up -d --build` |
+| `mcp-local` | You develop `ei-agentic-claude` locally | Mounted repo path (`EI_AGENTIC_CLAUDE_PATH`) | `docker compose --profile mcp-local up -d --build` |
+| `mcp` | You want npm-installed MCP inside bridge | npm install in bridge image | `docker compose --profile mcp up -d --build` |
+
+Pi 5 quickstart (new users)
+---------------------------
+1) Clone this repo:
+
+git clone https://github.com/eoinjordan/pi-openclaw-mcp-stack.git
+cd pi-openclaw-mcp-stack
+
+2) Run the helper script (recommended default: `mcp-image`):
+
+bash scripts/pi5-quickstart.sh
+
+3) Edit `.env` with your keys:
+- `TELEGRAM_TOKEN`
+- `EI_API_KEY`
+- optional: `OPENAI_API_KEY`
+
+4) Re-run start:
+
+bash scripts/pi5-quickstart.sh mcp-image
+
+5) Verify:
+
+curl -s http://127.0.0.1:3000/health
+curl -s http://127.0.0.1:3000/health/upstreams
+
 Alignment with ei-agentic-claude
 --------------------------------
 - `ei-agentic-claude` runs an MCP server over stdio. This stack expects HTTP upstreams.
