@@ -7,27 +7,74 @@ const OpenAI = require('openai')
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 if (!TELEGRAM_TOKEN) throw new Error('Missing TELEGRAM_TOKEN')
-if (!OPENAI_API_KEY) throw new Error('Missing OPENAI_API_KEY')
 
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true })
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY })
+const openai = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null
 
 const GATEWAY_URL = process.env.GATEWAY_URL || 'http://127.0.0.1:3000'
 const DEFAULT_PROJECT_ROOT = process.env.DEFAULT_ARDUINO_PROJECT_ROOT || '/workspace/Blink'
+
+const HELP_TEXT = [
+  'Commands:',
+  '- build arduino',
+  '- validate arduino',
+  '- health',
+  '- help'
+].join('\n')
+
+function formatAxiosError(e) {
+  const status = e?.response?.status
+  const data = e?.response?.data
+  if (status) {
+    const detail = data ? JSON.stringify(data) : 'no body'
+    return `HTTP ${status}: ${detail}`
+  }
+  return e?.message || String(e)
+}
 
 bot.on('message', async (msg) => {
   const chatId = msg.chat.id
   const text = (msg.text || '').trim()
   if (!text) return
+  const cmd = text.toLowerCase()
 
   try {
-    if (text.toLowerCase() === 'build arduino') {
+    if (cmd === 'help' || cmd === '/start') {
+      await bot.sendMessage(chatId, HELP_TEXT)
+      return
+    }
+
+    if (cmd === 'health') {
+      const r = await axios.get(`${GATEWAY_URL}/health`, { timeout: 10_000 })
+      await bot.sendMessage(chatId, 'Gateway:\n' + JSON.stringify(r.data, null, 2))
+      return
+    }
+
+    if (cmd === 'validate arduino') {
+      const r = await axios.post(
+        `${GATEWAY_URL}/arduino/validate`,
+        { projectRoot: DEFAULT_PROJECT_ROOT },
+        { timeout: 120_000 }
+      )
+      await bot.sendMessage(chatId, 'Validate result:\n' + JSON.stringify(r.data, null, 2))
+      return
+    }
+
+    if (cmd === 'build arduino') {
       const r = await axios.post(
         `${GATEWAY_URL}/arduino/build`,
         { projectRoot: DEFAULT_PROJECT_ROOT },
         { timeout: 600_000 }
       )
       await bot.sendMessage(chatId, 'Build result:\n' + JSON.stringify(r.data, null, 2))
+      return
+    }
+
+    if (!openai) {
+      await bot.sendMessage(
+        chatId,
+        'OpenAI chat is disabled. Set OPENAI_API_KEY to enable chat, or send "help".'
+      )
       return
     }
 
@@ -39,6 +86,6 @@ bot.on('message', async (msg) => {
     const out = completion.choices?.[0]?.message?.content || '(no content)'
     await bot.sendMessage(chatId, out)
   } catch (e) {
-    await bot.sendMessage(chatId, `Error: ${e.message}`)
+    await bot.sendMessage(chatId, `Error: ${formatAxiosError(e)}`)
   }
 })

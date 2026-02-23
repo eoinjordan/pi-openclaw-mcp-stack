@@ -13,12 +13,22 @@ const EI_MCP = process.env.EI_MCP || 'http://127.0.0.1:8090'
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 
+function sendAxiosError(res, e) {
+  const status = e?.response?.status || 500
+  const data = e?.response?.data
+  if (data && typeof data === 'object') {
+    res.status(status).json(data)
+    return
+  }
+  res.status(status).json({ error: data || e.message || String(e) })
+}
+
 app.post('/arduino/validate', async (req, res) => {
   try {
     const r = await axios.post(`${ARDUINO_MCP}/validate`, req.body, { timeout: 120_000 })
     res.json(r.data)
   } catch (e) {
-    res.status(500).json({ error: e.message })
+    sendAxiosError(res, e)
   }
 })
 
@@ -27,7 +37,7 @@ app.post('/arduino/build', async (req, res) => {
     const r = await axios.post(`${ARDUINO_MCP}/build`, req.body, { timeout: 600_000 })
     res.json(r.data)
   } catch (e) {
-    res.status(500).json({ error: e.message })
+    sendAxiosError(res, e)
   }
 })
 
@@ -36,7 +46,7 @@ app.post('/ei/run', async (req, res) => {
     const r = await axios.post(`${EI_MCP}/run`, req.body, { timeout: 600_000 })
     res.json(r.data)
   } catch (e) {
-    res.status(500).json({ error: e.message })
+    sendAxiosError(res, e)
   }
 })
 

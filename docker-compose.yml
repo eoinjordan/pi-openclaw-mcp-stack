@@ -12,3 +12,25 @@ services:
     restart: unless-stopped
     network_mode: host
     env_file: .env
+
+  ei-mcp-bridge:
+    build: ./ei-mcp-bridge
+    container_name: ei-mcp-bridge
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    profiles: ["mcp"]
+
+  arduino-mcp:
+    image: node:20-bookworm-slim
+    container_name: arduino-mcp
+    restart: unless-stopped
+    network_mode: host
+    profiles: ["mcp"]
+    environment:
+      PORT: 3080
+      ARDUINO_FQBN: arduino:mbed_nano:nano33ble
+    volumes:
+      - ./workspace/Arduino:/workspace
+      - ./workspace/.arduino15:/root/.arduino15
+    command: bash -lc "npm i -g arduino-claude-mcp && node $(npm root -g)/arduino-claude-mcp/dist/index.js"
