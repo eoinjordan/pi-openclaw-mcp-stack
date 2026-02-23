@@ -6,7 +6,7 @@ Raspberry Pi 5 stack for running `clawdbot`, Arduino MCP, and Edge Impulse MCP t
 
 | Mode | Best for | EI MCP source | Start command |
 | --- | --- | --- | --- |
-| `mcp-image` (Recommended) | New users, fastest setup | `eoinedge/ei-agentic-claude-mcp:latest` image | `docker compose --profile mcp-image up -d --build` |
+| `mcp-image` (Recommended) | New users, fastest setup | `docker.io/eoinedge/ei-agentic-claude-mcp:latest` image | `docker compose --profile mcp-image up -d --build` |
 | `mcp-local` | Developing `ei-agentic-claude` locally | Mounted repo path (`EI_AGENTIC_CLAUDE_PATH`) | `docker compose --profile mcp-local up -d --build` |
 | `mcp` | No prebuilt MCP image | npm install inside bridge image | `docker compose --profile mcp up -d --build` |
 

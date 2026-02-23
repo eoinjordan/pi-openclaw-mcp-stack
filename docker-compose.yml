@@ -39,7 +39,7 @@ services:
       context: ./ei-mcp-bridge
       dockerfile: Dockerfile.image
       args:
-        EI_MCP_BASE_IMAGE: ${EI_MCP_BASE_IMAGE:-eoinedge/ei-agentic-claude-mcp:latest}
+        EI_MCP_BASE_IMAGE: ${EI_MCP_BASE_IMAGE:-docker.io/eoinedge/ei-agentic-claude-mcp:latest}
     container_name: ei-mcp-bridge-image
     restart: unless-stopped
     network_mode: host

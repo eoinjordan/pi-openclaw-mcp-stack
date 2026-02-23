@@ -9,7 +9,7 @@ Arduino MCP is included for all three profiles.
 
 ## mcp-image (recommended)
 
-Uses prebuilt image `eoinedge/ei-agentic-claude-mcp:latest`.
+Uses prebuilt image `docker.io/eoinedge/ei-agentic-claude-mcp:latest`.
 
 ```bash
 docker compose stop ei-mcp-bridge ei-mcp-bridge-local
@@ -24,7 +24,7 @@ Env knobs:
 Testing tag example in `.env`:
 
 ```bash
-EI_MCP_BASE_IMAGE=eoinedge/ei-agentic-claude-mcp:test
+EI_MCP_BASE_IMAGE=docker.io/eoinedge/ei-agentic-claude-mcp:test
 ```
 
 ## mcp-local
