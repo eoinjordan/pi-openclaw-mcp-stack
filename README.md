@@ -221,6 +221,7 @@ Telegram -> clawdbot -> openclaw-gateway
 
 ## Detailed docs
 
+- LLM docs index for this repo: `llms.txt`
 - Pi setup and package fallback details: `docs/pi5-setup.md`
 - Mode-specific setup (`mcp`, `mcp-local`, `mcp-image`): `docs/modes.md`
 - Observability and flow tracing: `docs/observability.md`
@@ -228,6 +229,7 @@ Telegram -> clawdbot -> openclaw-gateway
 - EI to Nano 33 BLE deployment flow: `docs/ei-arduino-deploy.md`
 - Full first-project to flash flow: `docs/pi5-ei-to-nano33ble.md`
 - Local Ollama setup for Pi 5: `docs/ollama.md`
+- Jetson + Rubik Pi hardware setup scripts: `docs/hardware-acceleration-host-setup.md`
 - Kubernetes distributed deployment + hardware acceleration guide: `docs/kubernetes-distributed-acceleration.md`
 - Edge Impulse docs index (for deployment and project settings): `https://docs.edgeimpulse.com/llms.txt`
 

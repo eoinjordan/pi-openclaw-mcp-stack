@@ -1,0 +1,20 @@
+# pi-openclaw-mcp-stack Documentation Index
+
+Canonical repository:
+- https://github.com/eoinjordan/pi-openclaw-mcp-stack
+
+Primary docs:
+- https://github.com/eoinjordan/pi-openclaw-mcp-stack/blob/main/README.md
+- https://github.com/eoinjordan/pi-openclaw-mcp-stack/blob/main/docs/README.md
+- https://github.com/eoinjordan/pi-openclaw-mcp-stack/blob/main/docs/pi5-setup.md
+- https://github.com/eoinjordan/pi-openclaw-mcp-stack/blob/main/docs/modes.md
+- https://github.com/eoinjordan/pi-openclaw-mcp-stack/blob/main/docs/architecture.md
+- https://github.com/eoinjordan/pi-openclaw-mcp-stack/blob/main/docs/observability.md
+- https://github.com/eoinjordan/pi-openclaw-mcp-stack/blob/main/docs/ei-arduino-deploy.md
+- https://github.com/eoinjordan/pi-openclaw-mcp-stack/blob/main/docs/pi5-ei-to-nano33ble.md
+- https://github.com/eoinjordan/pi-openclaw-mcp-stack/blob/main/docs/ollama.md
+- https://github.com/eoinjordan/pi-openclaw-mcp-stack/blob/main/docs/kubernetes-distributed-acceleration.md
+
+Related external docs:
+- Edge Impulse docs index: https://docs.edgeimpulse.com/llms.txt
+- ei-agentic-claude repo: https://github.com/edgeimpulse/ei-agentic-claude

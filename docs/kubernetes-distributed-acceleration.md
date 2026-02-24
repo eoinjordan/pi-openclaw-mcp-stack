@@ -4,6 +4,10 @@ Use this guide when you want to run `pi-openclaw-mcp-stack` as a distributed dep
 
 This is an advanced deployment pattern. Keep the single-node Docker Compose flow as your first validated baseline.
 
+Host prep scripts are available at:
+- `scripts/setup-jetson-accel.sh`
+- `scripts/setup-rubikpi-qnn-accel.sh`
+
 ## 1) Target Architecture
 
 Map current services to Kubernetes workloads:
