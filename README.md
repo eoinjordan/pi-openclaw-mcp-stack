@@ -341,3 +341,26 @@ This repo includes Codex skills for Pi users under `skills/`.
 - `$pi-openclaw-arduino-flash` for serial-port-aware firmware upload to hardware after build/deploy handoff.
 
 Skill discovery rules are in `AGENTS.md`.
+
+## References
+
+For deeper background on the concepts and structures used in this repo:
+
+- LLM docs index format (`llms.txt`): `https://llmstxt.org/`
+- This repo LLM index file: `llms.txt`
+- Edge Impulse LLM docs index: `https://docs.edgeimpulse.com/llms.txt`
+- Edge Impulse MCP/CLI repo: `https://github.com/edgeimpulse/ei-agentic-claude`
+- Model Context Protocol (MCP): `https://modelcontextprotocol.io/introduction`
+- Docker Compose profiles: `https://docs.docker.com/compose/profiles/`
+- Docker host networking: `https://docs.docker.com/engine/network/drivers/host/`
+- Docker Buildx: `https://docs.docker.com/build/buildx/`
+- Kubernetes Deployments: `https://kubernetes.io/docs/concepts/workloads/controllers/deployment/`
+- Kubernetes Services: `https://kubernetes.io/docs/concepts/services-networking/service/`
+- Kubernetes ConfigMaps: `https://kubernetes.io/docs/concepts/configuration/configmap/`
+- Kubernetes Secrets: `https://kubernetes.io/docs/concepts/configuration/secret/`
+- Kubernetes Persistent Volumes: `https://kubernetes.io/docs/concepts/storage/persistent-volumes/`
+- Kubernetes HPA: `https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/`
+- NVIDIA Container Toolkit: `https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html`
+- NVIDIA Kubernetes device plugin: `https://github.com/NVIDIA/k8s-device-plugin`
+- AMD ROCm docs: `https://rocm.docs.amd.com/`
+- Qualcomm docs portal (platform-specific runtime/plugin docs): `https://docs.qualcomm.com/`
