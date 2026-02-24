@@ -34,11 +34,14 @@ bash scripts/pi5-quickstart.sh mcp-image
 
 ### Reuse `ei-agentic-claude/.env.test` on Pi
 
-If you already keep EI keys in `ei-agentic-claude/.env.test`, point the stack to it:
+This stack is designed to work with the official Edge Impulse MCP repo:
+- `https://github.com/edgeimpulse/ei-agentic-claude`
+
+If you already keep keys in `ei-agentic-claude/.env.test`, point the stack to it:
 
 ```bash
 cd ~/pi-openclaw-mcp-stack
-echo 'EI_AGENTIC_ENV_TEST_PATH=/home/pi/ei-agentic-claude/.env.test' >> .env
+echo "EI_AGENTIC_ENV_TEST_PATH=$HOME/ei-agentic-claude/.env.test" >> .env
 bash scripts/pi5-quickstart.sh mcp-image
 ```
 
@@ -47,6 +50,11 @@ The quickstart script imports these keys into stack `.env` when present:
 - `EI_API_KEY`, `EI_ORG_API_KEY`, `EI_ORG_ID`, `EI_PROJECT_ID`, `EI_RUN_TRAINING`
 - `PROJECT_*_ID`, `PROJECT_*_URL`
 - `DSP_BLOCK_IDS`, `LEARN_BLOCK_IDS`, `EI_IMPULSE_ID`
+
+Minimum values you should set in `ei-agentic-claude/.env.test` for project execution:
+- `EI_API_KEY`
+- `EI_PROJECT_ID`
+- `EI_RUN_TRAINING=1` (enables write/post flows)
 
 Verify:
 
@@ -87,6 +95,14 @@ Notes:
 - Default gateway/bot timeouts are set to 20 minutes (`ARDUINO_VALIDATE_TIMEOUT_MS`, `ARDUINO_BUILD_TIMEOUT_MS`).
 - Arduino MCP compile timeout is also set to 20 minutes (`ARDUINO_COMPILE_TIMEOUT_MS`).
 - If `health/upstreams` returns `degraded`, tail logs: `docker compose --profile mcp-image logs --tail 120 arduino-mcp ei-mcp-bridge-image`.
+
+## Full Project To Flash Guide
+
+For a new-user, step-by-step flow from Edge Impulse project config to Nano 33 BLE flash on Pi 5, use:
+- `docs/pi5-ei-to-nano33ble.md`
+
+Flash helper script:
+- `scripts/flash-nano33ble.sh`
 
 ## Start And Restart Commands
 
@@ -179,6 +195,7 @@ Telegram -> clawdbot -> openclaw-gateway
 - Observability and flow tracing: `docs/observability.md`
 - Architecture deep dive: `docs/architecture.md`
 - EI to Nano 33 BLE deployment flow: `docs/ei-arduino-deploy.md`
+- Full first-project to flash flow: `docs/pi5-ei-to-nano33ble.md`
 - Local Ollama setup for Pi 5: `docs/ollama.md`
 - Edge Impulse docs index (for deployment and project settings): `https://docs.edgeimpulse.com/llms.txt`
 

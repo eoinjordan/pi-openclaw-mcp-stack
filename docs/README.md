@@ -5,4 +5,5 @@
 - Runtime architecture: `architecture.md`
 - Logs and health tracing: `observability.md`
 - Edge Impulse to Nano 33 BLE deployment: `ei-arduino-deploy.md`
+- Full Pi 5 first-project flow (Edge Impulse to flash): `pi5-ei-to-nano33ble.md`
 - Local Ollama setup and env wiring: `ollama.md`
