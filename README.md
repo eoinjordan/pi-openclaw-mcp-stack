@@ -2,6 +2,9 @@
 
 Raspberry Pi 5 stack for running `clawdbot`, Arduino MCP, and Edge Impulse MCP together.
 
+<img width="2864" height="1664" alt="pi-0-whatsapp-hero (1)" src="https://github.com/user-attachments/assets/ce8d2e59-b36a-486d-ab4b-0b41336094c7" />
+
+
 ## Choose Your Mode
 
 | Mode | Best for | EI MCP source | Start command |
