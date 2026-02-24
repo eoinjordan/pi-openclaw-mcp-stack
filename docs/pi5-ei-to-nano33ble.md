@@ -8,6 +8,23 @@ It connects:
 - Edge Impulse project settings and deployment build
 - Arduino Nano 33 BLE compile + flash
 
+## 0) If already setup, reset env cleanly
+
+```bash
+cd "$HOME/pi-openclaw-mcp-stack"
+docker compose --profile mcp-image down --remove-orphans
+cp .env ".env.backup.$(date +%Y%m%d-%H%M%S)"
+cp .env.example .env
+echo "EI_AGENTIC_ENV_TEST_PATH=$HOME/ei-agentic-claude/.env.test" >> .env
+nano .env
+```
+
+Set:
+- `TELEGRAM_TOKEN`
+- `EI_RUN_TRAINING=1`
+
+Then continue with step 4 (`pi5-quickstart.sh`) after confirming `ei-agentic-claude/.env.test`.
+
 ## 1) Clone both repos on Pi
 
 ```bash

@@ -51,6 +51,37 @@ The quickstart script imports these keys into stack `.env` when present:
 - `PROJECT_*_ID`, `PROJECT_*_URL`
 - `DSP_BLOCK_IDS`, `LEARN_BLOCK_IDS`, `EI_IMPULSE_ID`
 
+### Reset Existing Environment (Already Setup)
+
+Use this when you want to cleanly rebuild `.env` and re-apply settings from `ei-agentic-claude/.env.test`.
+
+```bash
+cd ~/pi-openclaw-mcp-stack
+docker compose --profile mcp-image down --remove-orphans
+cp .env .env.backup.$(date +%Y%m%d-%H%M%S)
+cp .env.example .env
+echo "EI_AGENTIC_ENV_TEST_PATH=$HOME/ei-agentic-claude/.env.test" >> .env
+nano .env
+```
+
+Set/confirm at least:
+- `TELEGRAM_TOKEN`
+- `EI_RUN_TRAINING=1`
+
+Rebuild and start:
+
+```bash
+bash scripts/pi5-quickstart.sh mcp-image
+docker compose --profile mcp-image up -d --force-recreate
+```
+
+Optional hard reset (re-download Arduino core/tools on next run):
+
+```bash
+rm -rf ~/pi-openclaw-mcp-stack/workspace/.arduino15
+mkdir -p ~/pi-openclaw-mcp-stack/workspace/.arduino15
+```
+
 Minimum values you should set in `ei-agentic-claude/.env.test` for project execution:
 - `EI_API_KEY`
 - `EI_PROJECT_ID`
