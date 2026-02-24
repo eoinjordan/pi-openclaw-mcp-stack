@@ -129,13 +129,61 @@ ensure_ei_mcp_base_image() {
   return 1
 }
 
-echo "[1/9] Installing Docker base packages..."
+upsert_env_line() {
+  local key="$1"
+  local value="$2"
+  if grep -q "^${key}=" .env; then
+    sed -i "s|^${key}=.*|${key}=${value}|" .env
+  else
+    echo "${key}=${value}" >> .env
+  fi
+}
+
+sync_from_ei_agentic_env_test() {
+  local configured
+  configured="${EI_AGENTIC_ENV_TEST_PATH:-}"
+  if [[ -z "$configured" ]]; then
+    configured="$(grep -E '^EI_AGENTIC_ENV_TEST_PATH=' .env | tail -n1 | cut -d= -f2- || true)"
+  fi
+  if [[ -z "$configured" ]]; then
+    return 0
+  fi
+  if [[ ! -f "$configured" ]]; then
+    echo "EI_AGENTIC_ENV_TEST_PATH is set but file not found: $configured"
+    return 1
+  fi
+
+  local imported=0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" ]] && continue
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ "$line" != *=* ]] && continue
+
+    local key="${line%%=*}"
+    local value="${line#*=}"
+    key="${key#"${key%%[![:space:]]*}"}"
+    key="${key%"${key##*[![:space:]]}"}"
+
+    if [[ "$key" =~ ^(ANTHROPIC_API_KEY|EI_API_KEY|EI_ORG_API_KEY|EI_ORG_ID|EI_PROJECT_ID|EI_RUN_TRAINING|DSP_BLOCK_IDS|LEARN_BLOCK_IDS|EI_IMPULSE_ID|PROJECT_[A-Za-z0-9_]+_(ID|URL))$ ]]; then
+      upsert_env_line "$key" "$value"
+      imported=$((imported + 1))
+    fi
+  done < "$configured"
+
+  if [[ "$imported" -gt 0 ]]; then
+    echo "Imported $imported key(s) from $configured into .env"
+  else
+    echo "No matching EI keys found in $configured"
+  fi
+}
+
+echo "[1/10] Installing Docker base packages..."
 sudo apt-get update
 sudo apt-get install -y docker.io curl ca-certificates
 sudo systemctl enable --now docker
 sudo usermod -aG docker "$USER" || true
 
-echo "[2/9] Installing Compose plugin fallback chain..."
+echo "[2/10] Installing Compose plugin fallback chain..."
 if ! detect_compose; then
   install_optional_package docker-compose-plugin || true
   install_optional_package docker-compose-v2 || true
@@ -150,7 +198,7 @@ if ! detect_compose; then
 fi
 echo "Compose detected: $COMPOSE_TYPE"
 
-echo "[3/9] Installing Buildx plugin fallback chain..."
+echo "[3/10] Installing Buildx plugin fallback chain..."
 if ! sudo docker buildx version >/dev/null 2>&1; then
   install_optional_package docker-buildx-plugin || true
   install_optional_package docker-buildx || true
@@ -162,25 +210,28 @@ else
 fi
 
 if [[ ! -f ".env" ]]; then
-  echo "[4/9] Creating .env from .env.example..."
+  echo "[4/10] Creating .env from .env.example..."
   cp .env.example .env
 fi
 
-echo "[5/9] Ensuring default Arduino sketch exists..."
+echo "[5/10] Syncing optional ei-agentic-claude .env.test keys..."
+sync_from_ei_agentic_env_test
+
+echo "[6/10] Ensuring default Arduino sketch exists..."
 ensure_blink_example
 
-echo "[6/9] Ensuring EI MCP base image is reachable..."
+echo "[7/10] Ensuring EI MCP base image is reachable..."
 ensure_ei_mcp_base_image
 
-echo "[7/9] Ensuring only one EI bridge profile is active..."
+echo "[8/10] Ensuring only one EI bridge profile is active..."
 compose_cmd stop ei-mcp-bridge ei-mcp-bridge-local ei-mcp-bridge-image >/dev/null 2>&1 || true
 
-echo "[8/9] Starting stack with mode: $MODE"
+echo "[9/10] Starting stack with mode: $MODE"
 compose_cmd --profile "$MODE" up -d --build
 
-echo "[9/9] Waiting for services and running health checks..."
+echo "[10/10] Waiting for services and running health checks..."
+BRIDGE_SERVICE="$(active_bridge_service)"
 if ! wait_for_http "gateway" "http://127.0.0.1:3000/health" 60 2; then
-  BRIDGE_SERVICE="$(active_bridge_service)"
   echo
   echo "Gateway did not become ready in time. Snapshot:"
   compose_cmd --profile "$MODE" ps || true
@@ -200,7 +251,15 @@ fi
 
 curl -fsS http://127.0.0.1:3000/health
 echo
-curl -fsS http://127.0.0.1:3000/health/upstreams || true
+if ! wait_for_http "gateway upstreams" "http://127.0.0.1:3000/health/upstreams" 180 2; then
+  echo "Upstreams are still warming up (common on first boot while Arduino core installs)."
+  echo "You can watch progress with:"
+  echo "  docker compose --profile $MODE logs -f arduino-mcp"
+  echo "  docker compose --profile $MODE logs --tail 120 $BRIDGE_SERVICE"
+  echo "  curl -s http://127.0.0.1:3000/health/upstreams"
+else
+  curl -fsS http://127.0.0.1:3000/health/upstreams
+fi
 echo
 
 if grep -q "REPLACE_ME" .env; then

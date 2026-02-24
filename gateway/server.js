@@ -8,6 +8,9 @@ app.use(express.json())
 
 const PORT = Number(process.env.GATEWAY_PORT || 3000)
 const LOG_REQUESTS = (process.env.GATEWAY_LOG_REQUESTS || '').trim() === '1'
+const ARDUINO_VALIDATE_TIMEOUT_MS = Number(process.env.ARDUINO_VALIDATE_TIMEOUT_MS || 1_200_000)
+const ARDUINO_BUILD_TIMEOUT_MS = Number(process.env.ARDUINO_BUILD_TIMEOUT_MS || 1_200_000)
+const EI_RUN_TIMEOUT_MS = Number(process.env.EI_RUN_TIMEOUT_MS || 600_000)
 
 const ARDUINO_MCP = process.env.ARDUINO_MCP || 'http://127.0.0.1:3080'
 const EI_MCP = process.env.EI_MCP || 'http://127.0.0.1:8090'
@@ -59,7 +62,9 @@ function sendAxiosError(res, e) {
 
 app.post('/arduino/validate', async (req, res) => {
   try {
-    const r = await axios.post(`${ARDUINO_MCP}/validate`, req.body, { timeout: 120_000 })
+    const r = await axios.post(`${ARDUINO_MCP}/validate`, req.body, {
+      timeout: ARDUINO_VALIDATE_TIMEOUT_MS
+    })
     res.json(r.data)
   } catch (e) {
     sendAxiosError(res, e)
@@ -68,7 +73,7 @@ app.post('/arduino/validate', async (req, res) => {
 
 app.post('/arduino/build', async (req, res) => {
   try {
-    const r = await axios.post(`${ARDUINO_MCP}/build`, req.body, { timeout: 600_000 })
+    const r = await axios.post(`${ARDUINO_MCP}/build`, req.body, { timeout: ARDUINO_BUILD_TIMEOUT_MS })
     res.json(r.data)
   } catch (e) {
     sendAxiosError(res, e)
@@ -77,7 +82,7 @@ app.post('/arduino/build', async (req, res) => {
 
 app.post('/ei/run', async (req, res) => {
   try {
-    const r = await axios.post(`${EI_MCP}/run`, req.body, { timeout: 600_000 })
+    const r = await axios.post(`${EI_MCP}/run`, req.body, { timeout: EI_RUN_TIMEOUT_MS })
     res.json(r.data)
   } catch (e) {
     sendAxiosError(res, e)

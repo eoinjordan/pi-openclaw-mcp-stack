@@ -32,12 +32,61 @@ Re-run:
 bash scripts/pi5-quickstart.sh mcp-image
 ```
 
+### Reuse `ei-agentic-claude/.env.test` on Pi
+
+If you already keep EI keys in `ei-agentic-claude/.env.test`, point the stack to it:
+
+```bash
+cd ~/pi-openclaw-mcp-stack
+echo 'EI_AGENTIC_ENV_TEST_PATH=/home/pi/ei-agentic-claude/.env.test' >> .env
+bash scripts/pi5-quickstart.sh mcp-image
+```
+
+The quickstart script imports these keys into stack `.env` when present:
+- `ANTHROPIC_API_KEY`
+- `EI_API_KEY`, `EI_ORG_API_KEY`, `EI_ORG_ID`, `EI_PROJECT_ID`, `EI_RUN_TRAINING`
+- `PROJECT_*_ID`, `PROJECT_*_URL`
+- `DSP_BLOCK_IDS`, `LEARN_BLOCK_IDS`, `EI_IMPULSE_ID`
+
 Verify:
 
 ```bash
 curl -s http://127.0.0.1:3000/health
 curl -s http://127.0.0.1:3000/health/upstreams
 ```
+
+If you are testing on Docker Desktop (Windows/macOS), `network_mode: host` does not expose `127.0.0.1:3000` on the host the same way as Pi/Linux.
+Use in-container checks instead:
+
+```bash
+docker exec openclaw-gateway node -e "fetch('http://127.0.0.1:3000/health').then(async r=>console.log(r.status, await r.text()))"
+docker exec openclaw-gateway node -e "fetch('http://127.0.0.1:3000/health/upstreams').then(async r=>console.log(r.status, await r.text()))"
+```
+
+## End-to-End Smoke Test
+
+Run this after the stack is up:
+
+```bash
+cd ~/pi-openclaw-mcp-stack
+docker compose --profile mcp-image ps
+curl -s http://127.0.0.1:3000/health
+curl -s http://127.0.0.1:3000/health/upstreams
+curl -s -X POST http://127.0.0.1:3000/arduino/validate -H "Content-Type: application/json" -d '{"projectRoot":"/workspace/Blink"}'
+curl -s -X POST http://127.0.0.1:3000/arduino/build -H "Content-Type: application/json" -d '{"projectRoot":"/workspace/Blink"}'
+```
+
+Optional EI tool-chain check (requires `EI_API_KEY`):
+
+```bash
+curl -s -X POST http://127.0.0.1:3000/ei/run -H "Content-Type: application/json" -d '{"name":"get_current_user_projects","apiKey":"'"$EI_API_KEY"'","params":{}}'
+```
+
+Notes:
+- First `validate` / `build` can take several minutes on fresh installs (core/toolchain download + first compile).
+- Default gateway/bot timeouts are set to 20 minutes (`ARDUINO_VALIDATE_TIMEOUT_MS`, `ARDUINO_BUILD_TIMEOUT_MS`).
+- Arduino MCP compile timeout is also set to 20 minutes (`ARDUINO_COMPILE_TIMEOUT_MS`).
+- If `health/upstreams` returns `degraded`, tail logs: `docker compose --profile mcp-image logs --tail 120 arduino-mcp ei-mcp-bridge-image`.
 
 ## Start And Restart Commands
 

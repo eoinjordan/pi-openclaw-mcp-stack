@@ -60,6 +60,7 @@ services:
       PORT: 3080
       ARDUINO_FQBN: arduino:mbed_nano:nano33ble
       ARDUINO_AUTO_INSTALL_CORE: ${ARDUINO_AUTO_INSTALL_CORE:-1}
+      ARDUINO_COMPILE_TIMEOUT_MS: ${ARDUINO_COMPILE_TIMEOUT_MS:-1200000}
     volumes:
       - ./workspace/Arduino:/workspace
       - ./workspace/.arduino15:/root/.arduino15

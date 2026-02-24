@@ -20,6 +20,8 @@ const openai = hasChatProvider
 
 const GATEWAY_URL = process.env.GATEWAY_URL || 'http://127.0.0.1:3000'
 const DEFAULT_PROJECT_ROOT = process.env.DEFAULT_ARDUINO_PROJECT_ROOT || '/workspace/Blink'
+const ARDUINO_VALIDATE_TIMEOUT_MS = Number(process.env.ARDUINO_VALIDATE_TIMEOUT_MS || 1_200_000)
+const ARDUINO_BUILD_TIMEOUT_MS = Number(process.env.ARDUINO_BUILD_TIMEOUT_MS || 1_200_000)
 const isOllamaMode = Boolean(OPENAI_BASE_URL && /:11434(\/|$)/.test(OPENAI_BASE_URL))
 const DEFAULT_CHAT_MODEL = process.env.OPENAI_MODEL || (isOllamaMode ? 'qwen2.5:3b-instruct' : 'gpt-4o-mini')
 
@@ -103,7 +105,7 @@ bot.on('message', async (msg) => {
       const r = await axios.post(
         `${GATEWAY_URL}/arduino/validate`,
         { projectRoot: DEFAULT_PROJECT_ROOT },
-        { timeout: 120_000 }
+        { timeout: ARDUINO_VALIDATE_TIMEOUT_MS }
       )
       await bot.sendMessage(chatId, 'Validate result:\n' + JSON.stringify(r.data, null, 2))
       return
@@ -113,7 +115,7 @@ bot.on('message', async (msg) => {
       const r = await axios.post(
         `${GATEWAY_URL}/arduino/build`,
         { projectRoot: DEFAULT_PROJECT_ROOT },
-        { timeout: 600_000 }
+        { timeout: ARDUINO_BUILD_TIMEOUT_MS }
       )
       await bot.sendMessage(chatId, 'Build result:\n' + JSON.stringify(r.data, null, 2))
       return
