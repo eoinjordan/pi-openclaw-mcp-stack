@@ -347,6 +347,11 @@ Skill discovery rules are in `AGENTS.md`.
 
 ## References
 
+
+New project is a custom docs llm that will integrate and be used locally:
+<img width="1644" height="801" alt="image" src="https://github.com/user-attachments/assets/85f03214-05fa-46b0-8e65-26c8920d6de7" />
+
+
 For deeper background on the concepts and structures used in this repo:
 
 - LLM docs index format (`llms.txt`): `https://llmstxt.org/`
