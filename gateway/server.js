@@ -84,11 +84,47 @@ function sanitizeLabel(value, fallback) {
   return fallback
 }
 
+function unwrapHeader(value) {
+  let header = String(value || '').trim()
+  if (!header) return ''
+  const includeMatch = header.match(/^#include\s*[<"]([^>"]+)[>"]$/)
+  if (includeMatch) header = includeMatch[1]
+  header = header.replace(/^<+/, '').replace(/>+$/, '')
+  header = header.replace(/^['"]+/, '').replace(/['"]+$/, '')
+  return header.trim()
+}
+
+function isPlaceholderHeader(value) {
+  const v = String(value || '').toLowerCase()
+  return (
+    v.includes('your_ei_header') ||
+    v.includes('your-project-inferencing') ||
+    v.includes('your_project_inferencing') ||
+    v.includes('replace_me')
+  )
+}
+
 function sanitizeHeader(value) {
-  const header = String(value || '').trim()
-  if (!header) return EI_LIBRARY_HEADER_DEFAULT
-  if (/^[A-Za-z0-9._/\-]+$/.test(header)) return header
-  return EI_LIBRARY_HEADER_DEFAULT
+  const rawHeader = unwrapHeader(value || EI_LIBRARY_HEADER_DEFAULT)
+  if (!rawHeader) {
+    return {
+      ok: false,
+      error: 'libraryHeader is required. Set EI_LIBRARY_HEADER_DEFAULT in .env or pass libraryHeader.'
+    }
+  }
+  if (isPlaceholderHeader(rawHeader)) {
+    return {
+      ok: false,
+      error: `libraryHeader is placeholder (${rawHeader}). Set EI_LIBRARY_HEADER_DEFAULT to your EI header (e.g. my_project_inferencing.h).`
+    }
+  }
+  if (!/^[A-Za-z0-9._/\-]+\.h$/.test(rawHeader)) {
+    return {
+      ok: false,
+      error: `libraryHeader must be a .h file name, got: ${rawHeader}`
+    }
+  }
+  return { ok: true, value: rawHeader }
 }
 
 function blinkSketch() {
@@ -352,7 +388,12 @@ app.post('/arduino/inference', async (req, res) => {
 
     const projectRootLike = req.body?.projectRoot || req.body?.projectName || DEFAULT_PROJECT_ROOT
     const { projectName, projectRoot, sketchDir, sketchPath } = resolveProjectPaths(projectRootLike)
-    const libraryHeader = sanitizeHeader(req.body?.libraryHeader)
+    const libraryHeaderResult = sanitizeHeader(req.body?.libraryHeader)
+    if (!libraryHeaderResult.ok) {
+      res.status(400).json({ error: libraryHeaderResult.error })
+      return
+    }
+    const libraryHeader = libraryHeaderResult.value
     const positiveLabel = sanitizeLabel(req.body?.positiveLabel, 'positive')
     const threshold = Math.max(0, Math.min(1, toValidFloat(req.body?.threshold, 0.8)))
     const ledPin = toValidPin(req.body?.ledPin, 13)

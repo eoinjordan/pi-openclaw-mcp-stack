@@ -14,10 +14,11 @@ Discover available EI tools before calling them:
 curl -s http://127.0.0.1:8090/tools
 ```
 
-List active projects via gateway:
+List projects/auth check via gateway:
 
 ```bash
-curl -sS -X POST http://127.0.0.1:3000/ei/run -H 'Content-Type: application/json' -d '{"name":"list_active_projects","params":{}}'
+curl -sS -X POST http://127.0.0.1:3000/ei/run -H 'Content-Type: application/json' -d '{"name":"get_current_user_projects","params":{}}'
+curl -sS -X POST http://127.0.0.1:3000/ei/run -H 'Content-Type: application/json' -d "{\"name\":\"project_information\",\"apiKey\":\"${EI_API_KEY}\",\"params\":{\"projectId\":${EI_PROJECT_ID}}}"
 ```
 
 Use project-focused tools returned by `/tools` to inspect project configuration before build.

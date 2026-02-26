@@ -3,7 +3,7 @@
 ## Components
 
 - `clawdbot`: Telegram bot command interface.
-- `openclaw-gateway`: HTTP router/proxy.
+- `openclaw-gateway`: HTTP router plus local sketch generation/flash runner.
 - `arduino-mcp`: Arduino build/validate backend.
 - `ei-mcp-bridge*`: HTTP-to-stdio bridge for Edge Impulse MCP.
 - `ei-agentic-claude`: MCP server that executes Edge Impulse tool calls.
@@ -44,3 +44,9 @@
 - `mcp-image`: bridge based on prebuilt `ei-agentic-claude-mcp` image.
 
 Use one EI bridge profile at a time.
+
+## Runtime Access Notes
+
+- `openclaw-gateway` now runs `arduino-cli` for `/arduino/example`, `/arduino/inference`, and `/arduino/flash`.
+- Compose mounts `./workspace/Arduino:/workspace`, `./workspace/.arduino15:/root/.arduino15`, and `/dev:/dev` into gateway.
+- Treat Telegram access as hardware-control access, because bot commands can trigger firmware generation and flashing.

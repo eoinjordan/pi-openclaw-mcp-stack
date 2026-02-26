@@ -132,7 +132,7 @@ function parseOptionalPort(tokens, idx) {
 function parseServoConfig(input) {
   const text = String(input || '').toLowerCase()
   const servoType = /\b360\b/.test(text) ? '360' : 'positional'
-  const pinMatch = text.match(/\bon\s+d?(\d+)\b/)
+  const pinMatch = text.match(/\b(?:on\s+)?d(\d+)\b/) || text.match(/\bon\s+(\d+)\b/)
   const servoPin = pinMatch ? Number(pinMatch[1]) : null
   return { servoType, servoPin }
 }

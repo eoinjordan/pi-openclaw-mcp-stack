@@ -108,6 +108,12 @@ docker compose --profile mcp-image ps
 
 ```bash
 source .env
+# JWT/HMAC lane (account listing)
+curl -sS -X POST http://127.0.0.1:3000/ei/run \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"get_current_user_projects","params":{}}'
+
+# API key lane (project read)
 curl -sS -X POST http://127.0.0.1:3000/ei/run \
   -H 'Content-Type: application/json' \
   -d "{\"name\":\"project_information\",\"apiKey\":\"$EI_API_KEY\",\"params\":{\"projectId\":$EI_PROJECT_ID}}"
@@ -117,18 +123,34 @@ curl -sS -X POST http://127.0.0.1:3000/ei/run \
 
 ```bash
 source .env
-curl -sS -X POST http://127.0.0.1:3000/ei/run \
+BUILD_JSON="$(curl -sS -X POST http://127.0.0.1:3000/ei/run \
   -H 'Content-Type: application/json' \
-  -d "{\"name\":\"build_on_device_model\",\"apiKey\":\"$EI_API_KEY\",\"params\":{\"projectId\":$EI_PROJECT_ID,\"type\":\"arduino\",\"impulseId\":$EI_IMPULSE_ID,\"engine\":\"tflite-eon\",\"modelType\":\"int8\"}}"
+  -d "{\"name\":\"build_on_device_model\",\"apiKey\":\"$EI_API_KEY\",\"params\":{\"projectId\":$EI_PROJECT_ID,\"type\":\"arduino\",\"impulseId\":$EI_IMPULSE_ID,\"engine\":\"tflite-eon\",\"modelType\":\"int8\"}}")"
+echo "$BUILD_JSON"
+JOB_ID="$(echo "$BUILD_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")"
+DEPLOYMENT_VERSION="$(echo "$BUILD_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['deploymentVersion'])")"
+echo "JOB_ID=$JOB_ID DEPLOYMENT_VERSION=$DEPLOYMENT_VERSION"
 ```
 
-Poll status (replace `JOB_ID`):
+Poll status:
 
 ```bash
 source .env
 curl -sS -X POST http://127.0.0.1:3000/ei/run \
   -H 'Content-Type: application/json' \
-  -d "{\"name\":\"get_job_status_openapi_b8230c81\",\"apiKey\":\"$EI_API_KEY\",\"params\":{\"projectId\":$EI_PROJECT_ID,\"jobId\":JOB_ID}}"
+  -d "{\"name\":\"get_job_status_openapi_b8230c81\",\"apiKey\":\"$EI_API_KEY\",\"params\":{\"projectId\":$EI_PROJECT_ID,\"jobId\":$JOB_ID}}"
+```
+
+Download deployment ZIP:
+
+```bash
+mkdir -p outputs
+curl -L -H "x-api-key: $EI_API_KEY" \
+  -o outputs/ei_arduino_deployment.zip \
+  "https://studio.edgeimpulse.com/v1/api/$EI_PROJECT_ID/deployment/history/$DEPLOYMENT_VERSION/download"
+HEADER="$(unzip -Z1 outputs/ei_arduino_deployment.zip | grep -m1 -E '_inferencing\.h$' | awk -F/ '{print $NF}')"
+sed -i "s|^EI_LIBRARY_HEADER_DEFAULT=.*|EI_LIBRARY_HEADER_DEFAULT=$HEADER|" .env
+docker compose --profile mcp-image up -d --force-recreate gateway clawdbot
 ```
 
 ## 8) Compile Arduino project in stack workspace

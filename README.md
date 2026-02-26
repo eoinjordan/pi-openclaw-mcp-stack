@@ -118,10 +118,14 @@ curl -s -X POST http://127.0.0.1:3000/arduino/validate -H "Content-Type: applica
 curl -s -X POST http://127.0.0.1:3000/arduino/build -H "Content-Type: application/json" -d '{"projectRoot":"/workspace/Blink"}'
 ```
 
-Optional EI tool-chain check (requires `EI_API_KEY`):
+Optional EI tool-chain checks:
 
 ```bash
-curl -s -X POST http://127.0.0.1:3000/ei/run -H "Content-Type: application/json" -d '{"name":"get_current_user_projects","apiKey":"'"$EI_API_KEY"'","params":{}}'
+# Account-level listing (JWT/HMAC mode)
+curl -s -X POST http://127.0.0.1:3000/ei/run -H "Content-Type: application/json" -d '{"name":"get_current_user_projects","params":{}}'
+
+# Project-level read (API key mode)
+curl -s -X POST http://127.0.0.1:3000/ei/run -H "Content-Type: application/json" -d '{"name":"project_information","apiKey":"'"$EI_API_KEY"'","params":{"projectId":'"$EI_PROJECT_ID"'}}'
 ```
 
 Notes:
@@ -137,6 +141,19 @@ For a new-user, step-by-step flow from Edge Impulse project config to Nano 33 BL
 
 Flash helper script:
 - `scripts/flash-nano33ble.sh`
+
+## Inference Prerequisite
+
+If you use `inference led|servo` or `flash inference ...`, set the EI library header in `.env`:
+
+```bash
+HEADER="$(unzip -Z1 outputs/ei_arduino_deployment.zip | grep -m1 -E '_inferencing\.h$' | awk -F/ '{print $NF}')"
+echo "Detected header: $HEADER"
+sed -i "s|^EI_LIBRARY_HEADER_DEFAULT=.*|EI_LIBRARY_HEADER_DEFAULT=$HEADER|" .env
+docker compose --profile mcp-image up -d --force-recreate gateway clawdbot
+```
+
+If `EI_LIBRARY_HEADER_DEFAULT` is still placeholder text, gateway will return `HTTP 400` for `/arduino/inference`.
 
 ## Start And Restart Commands
 
@@ -208,7 +225,8 @@ The quickstart script handles package fallbacks and prints a clear error path if
 
 ```text
 Telegram -> clawdbot -> openclaw-gateway
-                       |- /arduino/* -> arduino-mcp
+                       |- /arduino/validate|build -> arduino-mcp
+                       |- /arduino/example|inference|flash -> gateway local arduino-cli
                        |- /ei/run    -> ei-mcp-bridge* -> ei-agentic-claude MCP (stdio) -> Edge Impulse API
 ```
 
@@ -221,6 +239,7 @@ Telegram -> clawdbot -> openclaw-gateway
 
 - Target: Raspberry Pi 5 (`linux/arm64`, Raspberry Pi OS 64-bit Bookworm).
 - Windows/macOS Docker Desktop is useful for flow checks, but images there are typically `amd64`.
+- Gateway now needs hardware access for flash workflow (`/dev` + workspace mounts). Restrict bot access to trusted users only.
 
 ## Detailed docs
 
@@ -294,6 +313,8 @@ inference servo - Generate EI inference sketch for servo output
 validate arduino - Validate default sketch
 build arduino - Build default sketch
 flash arduino - Compile and upload default sketch
+flash example - Generate and flash example sketch
+flash inference - Generate and flash inference sketch
 ```
 
 7. Restart and test:
