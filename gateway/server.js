@@ -331,6 +331,38 @@ async function tryInstallEiLibraryFromZip(timeoutMs) {
   return { ok: false, command: `arduino-cli ${args.join(' ')}`, result }
 }
 
+async function tryInstallArduinoLibrary(libraryName, timeoutMs) {
+  const args = ['lib', 'install', libraryName]
+  const result = await runCommand('arduino-cli', args, timeoutMs)
+  if (result.ok) {
+    return { ok: true, command: `arduino-cli ${args.join(' ')}`, result, libraryName }
+  }
+  const output = `${result.stdout}\n${result.stderr}`.toLowerCase()
+  if (output.includes('already installed')) {
+    return { ok: true, command: `arduino-cli ${args.join(' ')}`, result, alreadyInstalled: true, libraryName }
+  }
+  return { ok: false, command: `arduino-cli ${args.join(' ')}`, result, libraryName }
+}
+
+function missingHeaderLibraryName(missingHeader) {
+  const h = String(missingHeader || '').trim()
+  if (!h) return ''
+  const map = {
+    'Servo.h': 'Servo'
+  }
+  return map[h] || ''
+}
+
+async function resolveDevicePathCaseInsensitive(devicePath) {
+  const raw = String(devicePath || '').trim()
+  if (!/^\/dev\//i.test(raw)) return raw
+  const base = path.posix.basename(raw)
+  const entries = await fs.readdir('/dev')
+  if (entries.includes(base)) return `/dev/${base}`
+  const matched = entries.find((e) => e.toLowerCase() === base.toLowerCase())
+  return matched ? `/dev/${matched}` : raw
+}
+
 async function checkUpstreamHealth(baseUrl) {
   try {
     const r = await axios.get(`${baseUrl}/health`, { timeout: 5_000 })
@@ -515,11 +547,12 @@ app.post('/arduino/flash', async (req, res) => {
     const projectRootLike = req.body?.projectRoot || req.body?.projectName || DEFAULT_PROJECT_ROOT
     const { projectName, projectRoot } = resolveProjectPaths(projectRootLike)
     const fqbn = String(req.body?.fqbn || ARDUINO_DEFAULT_FQBN).trim()
-    const port = String(req.body?.port || ARDUINO_FLASH_PORT).trim()
-    if (!port.startsWith('/dev/')) {
+    const requestedPort = String(req.body?.port || ARDUINO_FLASH_PORT).trim()
+    if (!/^\/dev\//i.test(requestedPort)) {
       res.status(400).json({ error: 'port must be a /dev path, e.g. /dev/ttyACM0' })
       return
     }
+    const port = await resolveDevicePathCaseInsensitive(requestedPort)
 
     const compileArgs = ['compile', '--fqbn', fqbn, projectRoot]
     let compileResult = await runCommand('arduino-cli', compileArgs, ARDUINO_FLASH_TIMEOUT_MS)
@@ -531,6 +564,14 @@ app.post('/arduino/flash', async (req, res) => {
         autoInstall = await tryInstallEiLibraryFromZip(ARDUINO_FLASH_TIMEOUT_MS)
         if (autoInstall.ok) {
           compileResult = await runCommand('arduino-cli', compileArgs, ARDUINO_FLASH_TIMEOUT_MS)
+        }
+      } else {
+        const libraryName = missingHeaderLibraryName(missingHeader)
+        if (libraryName) {
+          autoInstall = await tryInstallArduinoLibrary(libraryName, ARDUINO_FLASH_TIMEOUT_MS)
+          if (autoInstall.ok) {
+            compileResult = await runCommand('arduino-cli', compileArgs, ARDUINO_FLASH_TIMEOUT_MS)
+          }
         }
       }
     }
