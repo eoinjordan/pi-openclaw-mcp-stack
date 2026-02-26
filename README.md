@@ -269,6 +269,10 @@ Telegram -> clawdbot -> openclaw-gateway
 - `flash arduino [/dev/ttyACM0]`
 - `flash example blink|servo [360] [on d12] [/dev/ttyACM0]`
 - `flash inference led|servo [label] [threshold] [360] [on d12] [/dev/ttyACM0]`
+- `ei projects`
+- `ei project [projectId]`
+- `ei build arduino [projectId] [impulseId]`
+- `ei job <jobId> [projectId]`
 - `models`
 
 If `OPENAI_API_KEY` is set, non-command messages are forwarded to OpenAI chat.
@@ -316,6 +320,10 @@ build arduino - Build default sketch
 flash arduino - Compile and upload default sketch
 flash example - Generate and flash example sketch
 flash inference - Generate and flash inference sketch
+ei projects - List Edge Impulse projects (JWT lane)
+ei project - Show Edge Impulse project information
+ei build arduino - Start Edge Impulse Arduino deployment build
+ei job - Get Edge Impulse deployment job status
 ```
 
 7. Restart and test:

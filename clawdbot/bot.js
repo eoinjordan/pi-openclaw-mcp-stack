@@ -7,6 +7,7 @@ const OpenAI = require('openai')
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL
+const EI_API_KEY = process.env.EI_API_KEY
 if (!TELEGRAM_TOKEN) throw new Error('Missing TELEGRAM_TOKEN')
 
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true })
@@ -23,8 +24,15 @@ const DEFAULT_PROJECT_ROOT = process.env.DEFAULT_ARDUINO_PROJECT_ROOT || '/works
 const ARDUINO_VALIDATE_TIMEOUT_MS = Number(process.env.ARDUINO_VALIDATE_TIMEOUT_MS || 1_200_000)
 const ARDUINO_BUILD_TIMEOUT_MS = Number(process.env.ARDUINO_BUILD_TIMEOUT_MS || 1_200_000)
 const ARDUINO_FLASH_TIMEOUT_MS = Number(process.env.ARDUINO_FLASH_TIMEOUT_MS || 1_200_000)
+const EI_RUN_TIMEOUT_MS = Number(process.env.EI_RUN_TIMEOUT_MS || 600_000)
 const isOllamaMode = Boolean(OPENAI_BASE_URL && /:11434(\/|$)/.test(OPENAI_BASE_URL))
 const DEFAULT_CHAT_MODEL = process.env.OPENAI_MODEL || (isOllamaMode ? 'qwen2.5:3b-instruct' : 'gpt-4o-mini')
+const EI_PROJECT_ID = /^\d+$/.test(String(process.env.EI_PROJECT_ID || '').trim())
+  ? Number(process.env.EI_PROJECT_ID)
+  : null
+const EI_IMPULSE_ID = /^\d+$/.test(String(process.env.EI_IMPULSE_ID || '').trim())
+  ? Number(process.env.EI_IMPULSE_ID)
+  : null
 
 const HELP_TEXT = [
   'Commands:',
@@ -37,6 +45,10 @@ const HELP_TEXT = [
   '- flash arduino [/dev/ttyACM0]',
   '- flash example blink|servo [360] [on d12] [/dev/ttyACM0]',
   '- flash inference led|servo [label] [threshold] [360] [on d12] [/dev/ttyACM0]',
+  '- ei projects',
+  '- ei project [projectId]',
+  '- ei build arduino [projectId] [impulseId]',
+  '- ei job <jobId> [projectId]',
   '- health',
   '- models',
   '- help'
@@ -136,6 +148,18 @@ function parseServoConfig(input) {
   const pinMatch = text.match(/\b(?:on\s+)?d(\d+)\b/) || text.match(/\bon\s+(\d+)\b/)
   const servoPin = pinMatch ? Number(pinMatch[1]) : null
   return { servoType, servoPin }
+}
+
+function parseOptionalIntegerToken(token) {
+  if (!token) return null
+  const parsed = Number(token)
+  return Number.isInteger(parsed) ? parsed : null
+}
+
+function renderJsonForTelegram(label, payload) {
+  const text = `${label}\n${JSON.stringify(payload, null, 2)}`
+  if (text.length <= 3900) return text
+  return `${text.slice(0, 3800)}\n...(truncated)`
 }
 
 function tailLines(text, count = 10) {
@@ -307,6 +331,92 @@ bot.on('message', async (msg) => {
         ARDUINO_FLASH_TIMEOUT_MS
       )
       await bot.sendMessage(chatId, flashSummary(out))
+      return
+    }
+
+    if (cmd === 'ei projects') {
+      const out = await postGateway(
+        '/ei/run',
+        { name: 'get_current_user_projects', params: {} },
+        EI_RUN_TIMEOUT_MS
+      )
+      await bot.sendMessage(chatId, renderJsonForTelegram('EI projects:', out))
+      return
+    }
+
+    if (cmd === 'ei project' || cmd.startsWith('ei project ')) {
+      if (!EI_API_KEY) {
+        await bot.sendMessage(chatId, 'Missing EI_API_KEY in .env for project-scoped EI calls.')
+        return
+      }
+      const tokens = text.split(/\s+/)
+      const projectId = parseOptionalIntegerToken(tokens[2]) || EI_PROJECT_ID
+      if (!projectId) {
+        await bot.sendMessage(chatId, 'Usage: ei project [projectId] (or set EI_PROJECT_ID in .env)')
+        return
+      }
+      const out = await postGateway(
+        '/ei/run',
+        { name: 'project_information', apiKey: EI_API_KEY, params: { projectId } },
+        EI_RUN_TIMEOUT_MS
+      )
+      await bot.sendMessage(chatId, renderJsonForTelegram('EI project information:', out))
+      return
+    }
+
+    if (cmd === 'ei build arduino' || cmd.startsWith('ei build arduino ')) {
+      if (!EI_API_KEY) {
+        await bot.sendMessage(chatId, 'Missing EI_API_KEY in .env for EI build command.')
+        return
+      }
+      const tokens = text.split(/\s+/)
+      const projectId = parseOptionalIntegerToken(tokens[3]) || EI_PROJECT_ID
+      const impulseId = parseOptionalIntegerToken(tokens[4]) || EI_IMPULSE_ID
+      if (!projectId || !impulseId) {
+        await bot.sendMessage(chatId, 'Usage: ei build arduino [projectId] [impulseId] (or set EI_PROJECT_ID and EI_IMPULSE_ID in .env)')
+        return
+      }
+      const out = await postGateway(
+        '/ei/run',
+        {
+          name: 'build_on_device_model',
+          apiKey: EI_API_KEY,
+          params: {
+            projectId,
+            type: 'arduino',
+            impulseId,
+            engine: 'tflite-eon',
+            modelType: 'int8'
+          }
+        },
+        EI_RUN_TIMEOUT_MS
+      )
+      await bot.sendMessage(chatId, renderJsonForTelegram('EI build started:', out))
+      return
+    }
+
+    if (cmd === 'ei job' || cmd.startsWith('ei job ')) {
+      if (!EI_API_KEY) {
+        await bot.sendMessage(chatId, 'Missing EI_API_KEY in .env for EI job status command.')
+        return
+      }
+      const tokens = text.split(/\s+/)
+      const jobId = parseOptionalIntegerToken(tokens[2])
+      const projectId = parseOptionalIntegerToken(tokens[3]) || EI_PROJECT_ID
+      if (!jobId || !projectId) {
+        await bot.sendMessage(chatId, 'Usage: ei job <jobId> [projectId] (or set EI_PROJECT_ID in .env)')
+        return
+      }
+      const out = await postGateway(
+        '/ei/run',
+        {
+          name: 'get_job_status_openapi_b8230c81',
+          apiKey: EI_API_KEY,
+          params: { projectId, jobId }
+        },
+        EI_RUN_TIMEOUT_MS
+      )
+      await bot.sendMessage(chatId, renderJsonForTelegram('EI job status:', out))
       return
     }
 
