@@ -399,12 +399,21 @@ function sendAxiosError(res, e) {
   res.status(status).json({ error: data || e.message || String(e) })
 }
 
-function shouldRetryWithEiZip(e) {
+function shouldRetryWithCompileFallback(e) {
   const status = e?.response?.status
   const data = e?.response?.data
   if (status !== 400 || !data || typeof data !== 'object') return false
   const missingHeader = parseMissingHeader(data.stderr || '')
-  return missingHeader.endsWith('_inferencing.h')
+  return missingHeader.endsWith('_inferencing.h') || Boolean(missingHeaderLibraryName(missingHeader))
+}
+
+async function tryAutoInstallFromMissingHeader(missingHeader, timeoutMs) {
+  if (missingHeader.endsWith('_inferencing.h')) {
+    return tryInstallEiLibraryFromZip(timeoutMs)
+  }
+  const libraryName = missingHeaderLibraryName(missingHeader)
+  if (!libraryName) return null
+  return tryInstallArduinoLibrary(libraryName, timeoutMs)
 }
 
 async function proxyArduinoWithEiZipFallback(pathname, body, timeoutMs) {
@@ -412,13 +421,15 @@ async function proxyArduinoWithEiZipFallback(pathname, body, timeoutMs) {
     const r = await axios.post(`${ARDUINO_MCP}${pathname}`, body, { timeout: timeoutMs })
     return { ok: true, data: r.data }
   } catch (e) {
-    if (!shouldRetryWithEiZip(e)) throw e
-    const autoInstall = await tryInstallEiLibraryFromZip(timeoutMs)
+    if (!shouldRetryWithCompileFallback(e)) throw e
+    const missingHeader = parseMissingHeader(e?.response?.data?.stderr || '')
+    const autoInstall = await tryAutoInstallFromMissingHeader(missingHeader, timeoutMs)
+    if (!autoInstall) throw e
     if (!autoInstall.ok) {
       const data = e?.response?.data
       if (data && typeof data === 'object') {
         data.autoInstall = autoInstall
-        const wrapped = new Error('Arduino MCP compile failed and EI ZIP auto-install failed')
+        const wrapped = new Error('Arduino MCP compile failed and auto-install fallback failed')
         wrapped.response = { status: e?.response?.status || 500, data }
         throw wrapped
       }
