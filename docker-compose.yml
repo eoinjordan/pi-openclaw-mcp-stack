@@ -8,6 +8,7 @@ services:
     volumes:
       - ./workspace/Arduino:/workspace
       - ./workspace/.arduino15:/root/.arduino15
+      - ./workspace/ArduinoLibraries:/root/Arduino/libraries
       - ./outputs:/outputs
       - /dev:/dev
 
@@ -69,3 +70,4 @@ services:
     volumes:
       - ./workspace/Arduino:/workspace
       - ./workspace/.arduino15:/root/.arduino15
+      - ./workspace/ArduinoLibraries:/root/Arduino/libraries

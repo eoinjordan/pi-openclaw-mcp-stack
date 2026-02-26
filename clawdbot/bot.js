@@ -162,6 +162,12 @@ function renderJsonForTelegram(label, payload) {
   return `${text.slice(0, 3800)}\n...(truncated)`
 }
 
+function isApiKeyRequiredError(e) {
+  const payload = e?.response?.data || e?.message || ''
+  const text = typeof payload === 'string' ? payload : JSON.stringify(payload)
+  return /apikey is required/i.test(text)
+}
+
 function tailLines(text, count = 10) {
   if (!text) return ''
   return String(text).trim().split('\n').slice(-count).join('\n')
@@ -335,13 +341,24 @@ bot.on('message', async (msg) => {
     }
 
     if (cmd === 'ei projects') {
-      const out = await postGateway(
-        '/ei/run',
-        { name: 'get_current_user_projects', params: {} },
-        EI_RUN_TIMEOUT_MS
-      )
-      await bot.sendMessage(chatId, renderJsonForTelegram('EI projects:', out))
-      return
+      try {
+        const out = await postGateway(
+          '/ei/run',
+          { name: 'get_current_user_projects', params: {} },
+          EI_RUN_TIMEOUT_MS
+        )
+        await bot.sendMessage(chatId, renderJsonForTelegram('EI projects:', out))
+        return
+      } catch (e) {
+        if (!isApiKeyRequiredError(e) || !EI_API_KEY) throw e
+        const out = await postGateway(
+          '/ei/run',
+          { name: 'list_active_projects', apiKey: EI_API_KEY, params: {} },
+          EI_RUN_TIMEOUT_MS
+        )
+        await bot.sendMessage(chatId, renderJsonForTelegram('EI projects (apiKey lane):', out))
+        return
+      }
     }
 
     if (cmd === 'ei project' || cmd.startsWith('ei project ')) {

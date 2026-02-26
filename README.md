@@ -155,6 +155,7 @@ docker compose --profile mcp-image up -d --force-recreate gateway clawdbot
 
 If `EI_LIBRARY_HEADER_DEFAULT` is still placeholder text, gateway will return `HTTP 400` for `/arduino/inference`.
 Keep your deployment ZIP at `outputs/ei_arduino_deployment.zip` (or set `EI_LIBRARY_ZIP_PATH`), because `/arduino/flash` now attempts one automatic `arduino-cli lib install --zip-path ...` retry when compile fails on a missing `*_inferencing.h`.
+Gateway and `arduino-mcp` share `./workspace/ArduinoLibraries` so auto-installed libraries are available to `/arduino/validate`, `/arduino/build`, and `/arduino/flash`.
 
 ## Start And Restart Commands
 
