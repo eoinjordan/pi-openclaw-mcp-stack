@@ -267,9 +267,12 @@ async function writeSketch(sketchPath, content) {
   await fs.writeFile(sketchPath, content, 'utf8')
 }
 
-function runCommand(bin, args, timeoutMs) {
+function runCommand(bin, args, timeoutMs, extraEnv = null) {
   return new Promise((resolve) => {
-    const child = spawn(bin, args, { shell: false })
+    const child = spawn(bin, args, {
+      shell: false,
+      env: extraEnv ? { ...process.env, ...extraEnv } : process.env
+    })
     let stdout = ''
     let stderr = ''
     let timedOut = false
@@ -315,7 +318,9 @@ async function tryInstallEiLibraryFromZip(timeoutMs) {
     return { ok: false, skipped: true, reason: `EI ZIP not found at ${EI_LIBRARY_ZIP_PATH}` }
   }
   const args = ['lib', 'install', '--zip-path', EI_LIBRARY_ZIP_PATH]
-  const result = await runCommand('arduino-cli', args, timeoutMs)
+  const result = await runCommand('arduino-cli', args, timeoutMs, {
+    ARDUINO_LIBRARY_ENABLE_UNSAFE_INSTALL: 'true'
+  })
   if (result.ok) {
     return { ok: true, command: `arduino-cli ${args.join(' ')}`, result }
   }
