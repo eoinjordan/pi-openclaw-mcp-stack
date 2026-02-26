@@ -8,6 +8,7 @@ services:
     volumes:
       - ./workspace/Arduino:/workspace
       - ./workspace/.arduino15:/root/.arduino15
+      - ./outputs:/outputs
       - /dev:/dev
 
   clawdbot:

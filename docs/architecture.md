@@ -48,5 +48,6 @@ Use one EI bridge profile at a time.
 ## Runtime Access Notes
 
 - `openclaw-gateway` now runs `arduino-cli` for `/arduino/example`, `/arduino/inference`, and `/arduino/flash`.
-- Compose mounts `./workspace/Arduino:/workspace`, `./workspace/.arduino15:/root/.arduino15`, and `/dev:/dev` into gateway.
+- Compose mounts `./workspace/Arduino:/workspace`, `./workspace/.arduino15:/root/.arduino15`, `./outputs:/outputs`, and `/dev:/dev` into gateway.
+- During `/arduino/flash`, gateway can auto-install the EI ZIP (`EI_LIBRARY_ZIP_PATH`, default `/outputs/ei_arduino_deployment.zip`) when compile fails on missing `*_inferencing.h`.
 - Treat Telegram access as hardware-control access, because bot commands can trigger firmware generation and flashing.

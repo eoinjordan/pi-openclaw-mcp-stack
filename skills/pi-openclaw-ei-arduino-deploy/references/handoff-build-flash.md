@@ -8,6 +8,8 @@ Use this to move from EI deployment artifact to a complete built-and-flashed app
 ls -lh outputs/ei_arduino_deployment.zip
 ```
 
+Gateway flash auto-install expects this artifact at `outputs/ei_arduino_deployment.zip` by default (`EI_LIBRARY_ZIP_PATH`).
+
 ## 2) Install deployment ZIP in Arduino IDE (manual lane)
 
 1. `Sketch` -> `Include Library` -> `Add .ZIP Library...`

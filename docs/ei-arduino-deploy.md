@@ -34,6 +34,8 @@ curl -L -H "x-api-key: $EI_API_KEY" \
   "https://studio.edgeimpulse.com/v1/api/$EI_PROJECT_ID/deployment/history/$DEPLOYMENT_VERSION/download"
 ```
 
+Keep the ZIP at `outputs/ei_arduino_deployment.zip` (default `EI_LIBRARY_ZIP_PATH`), so gateway flash can auto-install the EI library if compile reports a missing `*_inferencing.h`.
+
 ## 4) Import deployment ZIP in Arduino IDE
 
 1. `Sketch` -> `Include Library` -> `Add .ZIP Library...`

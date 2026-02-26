@@ -98,12 +98,13 @@ function parseInferenceOptions(tokens, startIndex) {
 
   for (let i = 0; i < remainder.length; i += 1) {
     const token = remainder[i]
-    if (token.startsWith('/dev/')) {
+    const tokenLower = String(token).toLowerCase()
+    if (/^\/dev\//i.test(token)) {
       port = token
       continue
     }
-    if (token === '360') continue
-    if (token === 'on') {
+    if (tokenLower === '360') continue
+    if (tokenLower === 'on') {
       i += 1
       continue
     }
@@ -126,7 +127,7 @@ function parseInferenceOptions(tokens, startIndex) {
 
 function parseOptionalPort(tokens, idx) {
   const token = tokens[idx]
-  return token && token.startsWith('/dev/') ? token : null
+  return token && /^\/dev\//i.test(token) ? token : null
 }
 
 function parseServoConfig(input) {
@@ -203,7 +204,7 @@ bot.on('message', async (msg) => {
 
     if (cmd === 'example blink' || cmd === 'example servo' || cmd.startsWith('example servo ')) {
       const example = cmd.startsWith('example servo') ? 'servo' : 'blink'
-      const servoConfig = parseServoConfig(cmd)
+      const servoConfig = parseServoConfig(text)
       const out = await postGateway(
         '/arduino/example',
         {
@@ -219,10 +220,10 @@ bot.on('message', async (msg) => {
     }
 
     if (cmd === 'inference led' || cmd === 'inference servo' || cmd.startsWith('inference led ') || cmd.startsWith('inference servo ')) {
-      const tokens = cmd.split(/\s+/)
-      const actuator = tokens[1]
+      const tokens = text.split(/\s+/)
+      const actuator = (tokens[1] || '').toLowerCase()
       const { positiveLabel, threshold } = parseInferenceOptions(tokens, 2)
-      const servoConfig = actuator === 'servo' ? parseServoConfig(cmd) : null
+      const servoConfig = actuator === 'servo' ? parseServoConfig(text) : null
       const out = await postGateway(
         '/arduino/inference',
         {
@@ -240,7 +241,7 @@ bot.on('message', async (msg) => {
     }
 
     if (cmd === 'flash arduino' || cmd.startsWith('flash arduino ')) {
-      const tokens = cmd.split(/\s+/)
+      const tokens = text.split(/\s+/)
       const port = parseOptionalPort(tokens, 2)
       const out = await postGateway(
         '/arduino/flash',
@@ -252,14 +253,14 @@ bot.on('message', async (msg) => {
     }
 
     if (cmd.startsWith('flash example ')) {
-      const tokens = cmd.split(/\s+/)
-      const example = tokens[2]
+      const tokens = text.split(/\s+/)
+      const example = (tokens[2] || '').toLowerCase()
       if (!['blink', 'servo'].includes(example)) {
         await bot.sendMessage(chatId, 'Usage: flash example blink|servo [360] [on d12] [/dev/ttyACM0]')
         return
       }
-      const port = tokens.find((t) => t.startsWith('/dev/')) || null
-      const servoConfig = example === 'servo' ? parseServoConfig(cmd) : null
+      const port = tokens.find((t) => /^\/dev\//i.test(t)) || null
+      const servoConfig = example === 'servo' ? parseServoConfig(text) : null
       await postGateway(
         '/arduino/example',
         {
@@ -280,14 +281,14 @@ bot.on('message', async (msg) => {
     }
 
     if (cmd.startsWith('flash inference ')) {
-      const tokens = cmd.split(/\s+/)
-      const actuator = tokens[2]
+      const tokens = text.split(/\s+/)
+      const actuator = (tokens[2] || '').toLowerCase()
       if (!['led', 'servo'].includes(actuator)) {
         await bot.sendMessage(chatId, 'Usage: flash inference led|servo [label] [threshold] [360] [on d12] [/dev/ttyACM0]')
         return
       }
       const { positiveLabel, threshold, port } = parseInferenceOptions(tokens, 3)
-      const servoConfig = actuator === 'servo' ? parseServoConfig(cmd) : null
+      const servoConfig = actuator === 'servo' ? parseServoConfig(text) : null
       await postGateway(
         '/arduino/inference',
         {

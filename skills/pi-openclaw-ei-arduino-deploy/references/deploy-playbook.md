@@ -27,6 +27,8 @@ mkdir -p outputs
 curl -L -H "x-api-key: ${EI_API_KEY}" -o outputs/ei_arduino_deployment.zip "https://studio.edgeimpulse.com/v1/api/${EI_PROJECT_ID}/deployment/history/${DEPLOYMENT_VERSION}/download"
 ```
 
+Keep this file at `outputs/ei_arduino_deployment.zip` (or set `EI_LIBRARY_ZIP_PATH`) so gateway flash can auto-install it if compile reports missing `*_inferencing.h`.
+
 ## 4) Install ZIP library in Arduino IDE
 
 Use Arduino IDE on the Pi:

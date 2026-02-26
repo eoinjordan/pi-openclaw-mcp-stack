@@ -23,6 +23,7 @@ const DEFAULT_PROJECT_ROOT = process.env.DEFAULT_ARDUINO_PROJECT_ROOT || '/works
 const ARDUINO_DEFAULT_FQBN = process.env.ARDUINO_DEFAULT_FQBN || 'arduino:mbed_nano:nano33ble'
 const ARDUINO_FLASH_PORT = process.env.ARDUINO_FLASH_PORT || '/dev/ttyACM0'
 const EI_LIBRARY_HEADER_DEFAULT = process.env.EI_LIBRARY_HEADER_DEFAULT || 'your_project_inferencing.h'
+const EI_LIBRARY_ZIP_PATH = process.env.EI_LIBRARY_ZIP_PATH || '/outputs/ei_arduino_deployment.zip'
 
 if (LOG_REQUESTS) {
   app.use((req, _res, next) => {
@@ -295,6 +296,36 @@ function runCommand(bin, args, timeoutMs) {
   })
 }
 
+async function fileExists(filePath) {
+  try {
+    await fs.access(filePath)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function parseMissingHeader(stderr) {
+  const m = String(stderr || '').match(/fatal error:\s*([^:\n]+):\s*No such file or directory/i)
+  return m ? m[1].trim() : ''
+}
+
+async function tryInstallEiLibraryFromZip(timeoutMs) {
+  if (!(await fileExists(EI_LIBRARY_ZIP_PATH))) {
+    return { ok: false, skipped: true, reason: `EI ZIP not found at ${EI_LIBRARY_ZIP_PATH}` }
+  }
+  const args = ['lib', 'install', '--zip-path', EI_LIBRARY_ZIP_PATH]
+  const result = await runCommand('arduino-cli', args, timeoutMs)
+  if (result.ok) {
+    return { ok: true, command: `arduino-cli ${args.join(' ')}`, result }
+  }
+  const output = `${result.stdout}\n${result.stderr}`.toLowerCase()
+  if (output.includes('already installed')) {
+    return { ok: true, command: `arduino-cli ${args.join(' ')}`, result, alreadyInstalled: true }
+  }
+  return { ok: false, command: `arduino-cli ${args.join(' ')}`, result }
+}
+
 async function checkUpstreamHealth(baseUrl) {
   try {
     const r = await axios.get(`${baseUrl}/health`, { timeout: 5_000 })
@@ -452,7 +483,19 @@ app.post('/arduino/flash', async (req, res) => {
     }
 
     const compileArgs = ['compile', '--fqbn', fqbn, projectRoot]
-    const compileResult = await runCommand('arduino-cli', compileArgs, ARDUINO_FLASH_TIMEOUT_MS)
+    let compileResult = await runCommand('arduino-cli', compileArgs, ARDUINO_FLASH_TIMEOUT_MS)
+    let autoInstall = null
+
+    if (!compileResult.ok) {
+      const missingHeader = parseMissingHeader(compileResult.stderr)
+      if (missingHeader.endsWith('_inferencing.h')) {
+        autoInstall = await tryInstallEiLibraryFromZip(ARDUINO_FLASH_TIMEOUT_MS)
+        if (autoInstall.ok) {
+          compileResult = await runCommand('arduino-cli', compileArgs, ARDUINO_FLASH_TIMEOUT_MS)
+        }
+      }
+    }
+
     if (!compileResult.ok) {
       res.status(500).json({
         ok: false,
@@ -462,6 +505,7 @@ app.post('/arduino/flash', async (req, res) => {
         fqbn,
         port,
         command: `arduino-cli ${compileArgs.join(' ')}`,
+        autoInstall,
         ...compileResult
       })
       return
@@ -513,4 +557,5 @@ app.listen(PORT, () => {
   console.log(`EI_MCP=${EI_MCP}`)
   console.log(`ARDUINO_WORKSPACE_DIR=${ARDUINO_WORKSPACE_DIR}`)
   console.log(`ARDUINO_DEFAULT_FQBN=${ARDUINO_DEFAULT_FQBN}`)
+  console.log(`EI_LIBRARY_ZIP_PATH=${EI_LIBRARY_ZIP_PATH}`)
 })

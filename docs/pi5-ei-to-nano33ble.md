@@ -153,6 +153,8 @@ sed -i "s|^EI_LIBRARY_HEADER_DEFAULT=.*|EI_LIBRARY_HEADER_DEFAULT=$HEADER|" .env
 docker compose --profile mcp-image up -d --force-recreate gateway clawdbot
 ```
 
+Keep the deployment ZIP at `outputs/ei_arduino_deployment.zip` (or set `EI_LIBRARY_ZIP_PATH` in `.env`) so gateway flash can auto-install the EI Arduino library when needed.
+
 ## 8) Compile Arduino project in stack workspace
 
 Place your sketch under:
