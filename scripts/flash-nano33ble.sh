@@ -21,10 +21,20 @@ fi
 
 echo "Uploading /workspace/$PROJECT_REL to $SERIAL_PORT (FQBN=$FQBN) using $IMAGE"
 
+HOST_PROJECT_PATH="$ROOT_DIR/workspace/Arduino/$PROJECT_REL"
+
+if command -v arduino-cli >/dev/null 2>&1; then
+  echo "Detected host arduino-cli; using host compile+upload path"
+  arduino-cli compile --fqbn "$FQBN" "$HOST_PROJECT_PATH"
+  arduino-cli upload -p "$SERIAL_PORT" --fqbn "$FQBN" "$HOST_PROJECT_PATH"
+  exit 0
+fi
+
+echo "Host arduino-cli not found; falling back to container compile+upload"
 docker run --rm \
   --network host \
   --device "$SERIAL_PORT:$SERIAL_PORT" \
   -v "$ROOT_DIR/workspace/Arduino:/workspace" \
   -v "$ROOT_DIR/workspace/.arduino15:/root/.arduino15" \
   "$IMAGE" \
-  arduino-cli upload -p "$SERIAL_PORT" --fqbn "$FQBN" "/workspace/$PROJECT_REL"
+  sh -lc "arduino-cli compile --fqbn \"$FQBN\" \"/workspace/$PROJECT_REL\" && arduino-cli upload -p \"$SERIAL_PORT\" --fqbn \"$FQBN\" \"/workspace/$PROJECT_REL\""

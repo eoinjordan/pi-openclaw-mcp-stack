@@ -8,7 +8,13 @@ Use this to move from EI deployment artifact to a complete built-and-flashed app
 ls -lh outputs/ei_arduino_deployment.zip
 ```
 
-## 2) Build compile check in Arduino MCP workspace
+## 2) Install deployment ZIP in Arduino IDE (manual lane)
+
+1. `Sketch` -> `Include Library` -> `Add .ZIP Library...`
+2. Select `outputs/ei_arduino_deployment.zip`
+3. Open/update sketch under `workspace/Arduino/<ProjectName>/<ProjectName>.ino`
+
+## 3) Build compile check in Arduino MCP workspace
 
 Use an Arduino project root that includes your integrated sketch/library setup, then run:
 
@@ -22,7 +28,7 @@ curl -sS -X POST http://127.0.0.1:3000/arduino/build \
   -d '{"projectRoot":"/workspace/Blink"}'
 ```
 
-## 3) Pass to flash skill
+## 4) Pass to flash skill
 
 Handoff payload should include:
 - `projectRoot`: e.g. `/workspace/Blink`

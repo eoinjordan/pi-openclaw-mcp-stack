@@ -14,7 +14,8 @@ description: Flash firmware to Arduino boards in the pi-openclaw-mcp-stack workf
 - Use `references/serial-port-checks.md` to identify `/dev/tty*` and permission issues.
 
 3. Select upload path.
-- Preferred: host-side `arduino-cli upload` on Pi.
+- Preferred: `scripts/flash-nano33ble.sh` (compile then upload, host `arduino-cli` first).
+- Equivalent fallback: host-side `arduino-cli compile` + `arduino-cli upload` on Pi.
 - Optional: container-side upload only when the serial device is mapped into container runtime.
 
 4. Run flash command with explicit board and port.

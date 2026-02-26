@@ -24,8 +24,9 @@ description: Run combined Edge Impulse MCP and Arduino MCP deployment workflows 
 6. Download generated deployment artifact.
 - Save zip under local `outputs/`.
 
-7. Bundle and prepare Arduino project handoff.
+7. Install deployment ZIP and prepare Arduino project handoff.
 - Use `references/handoff-build-flash.md` to stage ZIP/library output for compile.
+- Support Arduino IDE ZIP import lane before compile/flash handoff.
 - Keep artifact path and project root explicit.
 
 8. Validate Arduino project with Arduino MCP.

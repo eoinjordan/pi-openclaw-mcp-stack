@@ -30,17 +30,22 @@ curl -L -H "x-api-key: $EI_API_KEY" \
   "https://studio.edgeimpulse.com/v1/api/$EI_PROJECT_ID/deployment/history/7/download"
 ```
 
-## 4) Import in Arduino IDE
+## 4) Import deployment ZIP in Arduino IDE
 
 1. `Sketch` -> `Include Library` -> `Add .ZIP Library...`
 2. Choose `outputs/ei_arduino_deployment.zip`
-3. Select board: `Arduino Nano 33 BLE`
-4. Build and upload
+3. Open or create sketch at `workspace/Arduino/<ProjectName>/<ProjectName>.ino`
+4. Include the generated EI header and inference call in the sketch
+5. Select board: `Arduino Nano 33 BLE`
 
-## 5) Optional CI compile check via Arduino MCP
+## 5) Compile check via Arduino MCP
 
 ```bash
 curl -sS -X POST http://127.0.0.1:3000/arduino/validate \
+  -H 'Content-Type: application/json' \
+  -d '{"projectRoot":"/workspace/<ProjectName>"}'
+
+curl -sS -X POST http://127.0.0.1:3000/arduino/build \
   -H 'Content-Type: application/json' \
   -d '{"projectRoot":"/workspace/<ProjectName>"}'
 ```
@@ -51,6 +56,8 @@ curl -sS -X POST http://127.0.0.1:3000/arduino/validate \
 ls /dev/ttyACM* /dev/ttyUSB*
 bash scripts/flash-nano33ble.sh <ProjectName> /dev/ttyACM0
 ```
+
+The flash script compiles before upload and uses host `arduino-cli` when installed.
 
 After build/validate succeeds, you can also use the Codex skill:
 - `$pi-openclaw-arduino-flash`
