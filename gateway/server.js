@@ -362,12 +362,43 @@ function sendAxiosError(res, e) {
   res.status(status).json({ error: data || e.message || String(e) })
 }
 
+function shouldRetryWithEiZip(e) {
+  const status = e?.response?.status
+  const data = e?.response?.data
+  if (status !== 400 || !data || typeof data !== 'object') return false
+  const missingHeader = parseMissingHeader(data.stderr || '')
+  return missingHeader.endsWith('_inferencing.h')
+}
+
+async function proxyArduinoWithEiZipFallback(pathname, body, timeoutMs) {
+  try {
+    const r = await axios.post(`${ARDUINO_MCP}${pathname}`, body, { timeout: timeoutMs })
+    return { ok: true, data: r.data }
+  } catch (e) {
+    if (!shouldRetryWithEiZip(e)) throw e
+    const autoInstall = await tryInstallEiLibraryFromZip(timeoutMs)
+    if (!autoInstall.ok) {
+      const data = e?.response?.data
+      if (data && typeof data === 'object') {
+        data.autoInstall = autoInstall
+        const wrapped = new Error('Arduino MCP compile failed and EI ZIP auto-install failed')
+        wrapped.response = { status: e?.response?.status || 500, data }
+        throw wrapped
+      }
+      throw e
+    }
+    const r = await axios.post(`${ARDUINO_MCP}${pathname}`, body, { timeout: timeoutMs })
+    return { ok: true, data: r.data, autoInstall }
+  }
+}
+
 app.post('/arduino/validate', async (req, res) => {
   try {
-    const r = await axios.post(`${ARDUINO_MCP}/validate`, req.body, {
-      timeout: ARDUINO_VALIDATE_TIMEOUT_MS
-    })
-    res.json(r.data)
+    const out = await proxyArduinoWithEiZipFallback('/validate', req.body, ARDUINO_VALIDATE_TIMEOUT_MS)
+    if (out.autoInstall && out.data && typeof out.data === 'object') {
+      out.data.autoInstall = out.autoInstall
+    }
+    res.json(out.data)
   } catch (e) {
     sendAxiosError(res, e)
   }
@@ -375,8 +406,11 @@ app.post('/arduino/validate', async (req, res) => {
 
 app.post('/arduino/build', async (req, res) => {
   try {
-    const r = await axios.post(`${ARDUINO_MCP}/build`, req.body, { timeout: ARDUINO_BUILD_TIMEOUT_MS })
-    res.json(r.data)
+    const out = await proxyArduinoWithEiZipFallback('/build', req.body, ARDUINO_BUILD_TIMEOUT_MS)
+    if (out.autoInstall && out.data && typeof out.data === 'object') {
+      out.data.autoInstall = out.autoInstall
+    }
+    res.json(out.data)
   } catch (e) {
     sendAxiosError(res, e)
   }
