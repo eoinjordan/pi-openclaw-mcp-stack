@@ -5,6 +5,10 @@ services:
     restart: unless-stopped
     network_mode: host
     env_file: .env
+    volumes:
+      - ./workspace/Arduino:/workspace
+      - ./workspace/.arduino15:/root/.arduino15
+      - /dev:/dev
 
   clawdbot:
     build: ./clawdbot

@@ -240,8 +240,15 @@ Telegram -> clawdbot -> openclaw-gateway
 
 - `help`
 - `health`
+- `example blink`
+- `example servo [360] [on d12]`
+- `inference led [label] [threshold]`
+- `inference servo [label] [threshold] [360] [on d12]`
 - `validate arduino`
 - `build arduino`
+- `flash arduino [/dev/ttyACM0]`
+- `flash example blink|servo [360] [on d12] [/dev/ttyACM0]`
+- `flash inference led|servo [label] [threshold] [360] [on d12] [/dev/ttyACM0]`
 - `models`
 
 If `OPENAI_API_KEY` is set, non-command messages are forwarded to OpenAI chat.
@@ -280,8 +287,13 @@ Paste:
 ```text
 help - Show commands
 health - Check stack health
+example blink - Generate Blink sketch in default project
+example servo - Generate Servo sketch (supports "360 on d12")
+inference led - Generate EI inference sketch for LED output
+inference servo - Generate EI inference sketch for servo output
 validate arduino - Validate default sketch
 build arduino - Build default sketch
+flash arduino - Compile and upload default sketch
 ```
 
 7. Restart and test:

@@ -22,13 +22,21 @@ const GATEWAY_URL = process.env.GATEWAY_URL || 'http://127.0.0.1:3000'
 const DEFAULT_PROJECT_ROOT = process.env.DEFAULT_ARDUINO_PROJECT_ROOT || '/workspace/Blink'
 const ARDUINO_VALIDATE_TIMEOUT_MS = Number(process.env.ARDUINO_VALIDATE_TIMEOUT_MS || 1_200_000)
 const ARDUINO_BUILD_TIMEOUT_MS = Number(process.env.ARDUINO_BUILD_TIMEOUT_MS || 1_200_000)
+const ARDUINO_FLASH_TIMEOUT_MS = Number(process.env.ARDUINO_FLASH_TIMEOUT_MS || 1_200_000)
 const isOllamaMode = Boolean(OPENAI_BASE_URL && /:11434(\/|$)/.test(OPENAI_BASE_URL))
 const DEFAULT_CHAT_MODEL = process.env.OPENAI_MODEL || (isOllamaMode ? 'qwen2.5:3b-instruct' : 'gpt-4o-mini')
 
 const HELP_TEXT = [
   'Commands:',
+  '- example blink',
+  '- example servo [360] [on d12]',
+  '- inference led [label] [threshold]',
+  '- inference servo [label] [threshold] [360] [on d12]',
   '- build arduino',
   '- validate arduino',
+  '- flash arduino [/dev/ttyACM0]',
+  '- flash example blink|servo [360] [on d12] [/dev/ttyACM0]',
+  '- flash inference led|servo [label] [threshold] [360] [on d12] [/dev/ttyACM0]',
   '- health',
   '- models',
   '- help'
@@ -80,6 +88,78 @@ async function chatWithModel(userText, model) {
   })
 }
 
+function parseInferenceOptions(tokens, startIndex) {
+  let positiveLabel = 'positive'
+  let threshold = 0.8
+  let port = null
+
+  const remainder = tokens.slice(startIndex)
+  const filtered = []
+
+  for (let i = 0; i < remainder.length; i += 1) {
+    const token = remainder[i]
+    if (token.startsWith('/dev/')) {
+      port = token
+      continue
+    }
+    if (token === '360') continue
+    if (token === 'on') {
+      i += 1
+      continue
+    }
+    if (/^d\d+$/i.test(token)) continue
+    filtered.push(token)
+  }
+
+  if (filtered[0] && Number.isNaN(Number(filtered[0]))) {
+    positiveLabel = filtered[0]
+  }
+  if (filtered[1]) {
+    const asNum = Number(filtered[1])
+    if (Number.isFinite(asNum)) {
+      threshold = Math.max(0, Math.min(1, asNum))
+    }
+  }
+
+  return { positiveLabel, threshold, port }
+}
+
+function parseOptionalPort(tokens, idx) {
+  const token = tokens[idx]
+  return token && token.startsWith('/dev/') ? token : null
+}
+
+function parseServoConfig(input) {
+  const text = String(input || '').toLowerCase()
+  const servoType = /\b360\b/.test(text) ? '360' : 'positional'
+  const pinMatch = text.match(/\bon\s+d?(\d+)\b/)
+  const servoPin = pinMatch ? Number(pinMatch[1]) : null
+  return { servoType, servoPin }
+}
+
+function tailLines(text, count = 10) {
+  if (!text) return ''
+  return String(text).trim().split('\n').slice(-count).join('\n')
+}
+
+function flashSummary(payload) {
+  const projectRoot = payload?.projectRoot || '(unknown project)'
+  const port = payload?.port || '(unknown port)'
+  const uploadTail = tailLines(payload?.upload?.stdout || payload?.upload?.stderr || '')
+  const compileTail = tailLines(payload?.compile?.stdout || payload?.compile?.stderr || '')
+  const lines = [
+    `Flash ok: ${projectRoot} -> ${port}`
+  ]
+  if (compileTail) lines.push(`Compile:\n${compileTail}`)
+  if (uploadTail) lines.push(`Upload:\n${uploadTail}`)
+  return lines.join('\n\n')
+}
+
+async function postGateway(path, body, timeoutMs) {
+  const r = await axios.post(`${GATEWAY_URL}${path}`, body, { timeout: timeoutMs })
+  return r.data
+}
+
 bot.on('message', async (msg) => {
   const chatId = msg.chat.id
   const text = (msg.text || '').trim()
@@ -118,6 +198,114 @@ bot.on('message', async (msg) => {
         { timeout: ARDUINO_BUILD_TIMEOUT_MS }
       )
       await bot.sendMessage(chatId, 'Build result:\n' + JSON.stringify(r.data, null, 2))
+      return
+    }
+
+    if (cmd === 'example blink' || cmd === 'example servo' || cmd.startsWith('example servo ')) {
+      const example = cmd.startsWith('example servo') ? 'servo' : 'blink'
+      const servoConfig = parseServoConfig(cmd)
+      const out = await postGateway(
+        '/arduino/example',
+        {
+          example,
+          projectRoot: DEFAULT_PROJECT_ROOT,
+          ...(example === 'servo' ? { servoType: servoConfig.servoType } : {}),
+          ...(example === 'servo' && servoConfig.servoPin !== null ? { servoPin: servoConfig.servoPin } : {})
+        },
+        ARDUINO_VALIDATE_TIMEOUT_MS
+      )
+      await bot.sendMessage(chatId, 'Example sketch generated:\n' + JSON.stringify(out, null, 2))
+      return
+    }
+
+    if (cmd === 'inference led' || cmd === 'inference servo' || cmd.startsWith('inference led ') || cmd.startsWith('inference servo ')) {
+      const tokens = cmd.split(/\s+/)
+      const actuator = tokens[1]
+      const { positiveLabel, threshold } = parseInferenceOptions(tokens, 2)
+      const servoConfig = actuator === 'servo' ? parseServoConfig(cmd) : null
+      const out = await postGateway(
+        '/arduino/inference',
+        {
+          actuator,
+          projectRoot: DEFAULT_PROJECT_ROOT,
+          positiveLabel,
+          threshold,
+          ...(actuator === 'servo' ? { servoType: servoConfig.servoType } : {}),
+          ...(actuator === 'servo' && servoConfig.servoPin !== null ? { servoPin: servoConfig.servoPin } : {})
+        },
+        ARDUINO_VALIDATE_TIMEOUT_MS
+      )
+      await bot.sendMessage(chatId, 'Inference sketch generated:\n' + JSON.stringify(out, null, 2))
+      return
+    }
+
+    if (cmd === 'flash arduino' || cmd.startsWith('flash arduino ')) {
+      const tokens = cmd.split(/\s+/)
+      const port = parseOptionalPort(tokens, 2)
+      const out = await postGateway(
+        '/arduino/flash',
+        { projectRoot: DEFAULT_PROJECT_ROOT, ...(port ? { port } : {}) },
+        ARDUINO_FLASH_TIMEOUT_MS
+      )
+      await bot.sendMessage(chatId, flashSummary(out))
+      return
+    }
+
+    if (cmd.startsWith('flash example ')) {
+      const tokens = cmd.split(/\s+/)
+      const example = tokens[2]
+      if (!['blink', 'servo'].includes(example)) {
+        await bot.sendMessage(chatId, 'Usage: flash example blink|servo [360] [on d12] [/dev/ttyACM0]')
+        return
+      }
+      const port = tokens.find((t) => t.startsWith('/dev/')) || null
+      const servoConfig = example === 'servo' ? parseServoConfig(cmd) : null
+      await postGateway(
+        '/arduino/example',
+        {
+          example,
+          projectRoot: DEFAULT_PROJECT_ROOT,
+          ...(example === 'servo' ? { servoType: servoConfig.servoType } : {}),
+          ...(example === 'servo' && servoConfig.servoPin !== null ? { servoPin: servoConfig.servoPin } : {})
+        },
+        ARDUINO_VALIDATE_TIMEOUT_MS
+      )
+      const out = await postGateway(
+        '/arduino/flash',
+        { projectRoot: DEFAULT_PROJECT_ROOT, ...(port ? { port } : {}) },
+        ARDUINO_FLASH_TIMEOUT_MS
+      )
+      await bot.sendMessage(chatId, flashSummary(out))
+      return
+    }
+
+    if (cmd.startsWith('flash inference ')) {
+      const tokens = cmd.split(/\s+/)
+      const actuator = tokens[2]
+      if (!['led', 'servo'].includes(actuator)) {
+        await bot.sendMessage(chatId, 'Usage: flash inference led|servo [label] [threshold] [360] [on d12] [/dev/ttyACM0]')
+        return
+      }
+      const { positiveLabel, threshold, port } = parseInferenceOptions(tokens, 3)
+      const servoConfig = actuator === 'servo' ? parseServoConfig(cmd) : null
+      await postGateway(
+        '/arduino/inference',
+        {
+          actuator,
+          projectRoot: DEFAULT_PROJECT_ROOT,
+          positiveLabel,
+          threshold,
+          ...(actuator === 'servo' ? { servoType: servoConfig.servoType } : {}),
+          ...(actuator === 'servo' && servoConfig.servoPin !== null ? { servoPin: servoConfig.servoPin } : {})
+        },
+        ARDUINO_VALIDATE_TIMEOUT_MS
+      )
+      const out = await postGateway(
+        '/arduino/flash',
+        { projectRoot: DEFAULT_PROJECT_ROOT, ...(port ? { port } : {}) },
+        ARDUINO_FLASH_TIMEOUT_MS
+      )
+      await bot.sendMessage(chatId, flashSummary(out))
       return
     }
 

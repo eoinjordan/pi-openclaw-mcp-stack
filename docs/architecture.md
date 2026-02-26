@@ -14,6 +14,7 @@
 2. `clawdbot` routes command to `openclaw-gateway`.
 3. `openclaw-gateway` forwards:
 - `/arduino/validate` and `/arduino/build` to `arduino-mcp`.
+- `/arduino/example`, `/arduino/inference`, and `/arduino/flash` are handled directly in gateway using local workspace and `arduino-cli`.
 - `/ei/run` to active EI bridge profile.
 4. EI bridge forwards `tools/call` over stdio to `ei-agentic-claude`.
 5. `ei-agentic-claude` calls Edge Impulse APIs and returns result.
@@ -26,6 +27,9 @@
 - `GET /health/upstreams`
 - `POST /arduino/validate`
 - `POST /arduino/build`
+- `POST /arduino/example`
+- `POST /arduino/inference`
+- `POST /arduino/flash`
 - `POST /ei/run`
 
 - EI bridge:
