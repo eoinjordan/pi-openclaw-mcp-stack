@@ -363,6 +363,19 @@ async function resolveDevicePathCaseInsensitive(devicePath) {
   return matched ? `/dev/${matched}` : raw
 }
 
+function shouldRetryUploadWithAlternatePort(stderr) {
+  const s = String(stderr || '').toLowerCase()
+  return s.includes('no device found on tty')
+}
+
+async function listLikelySerialPorts() {
+  const entries = await fs.readdir('/dev')
+  return entries
+    .filter((e) => /^tty(ACM|USB)\d+$/i.test(e))
+    .map((e) => `/dev/${e}`)
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+}
+
 async function checkUpstreamHealth(baseUrl) {
   try {
     const r = await axios.get(`${baseUrl}/health`, { timeout: 5_000 })
@@ -467,7 +480,10 @@ async function proxyArduinoWithCompileFallback(pathname, body, timeoutMs) {
 
 app.post('/arduino/validate', async (req, res) => {
   try {
-    const out = await proxyArduinoWithCompileFallback('/validate', req.body, ARDUINO_VALIDATE_TIMEOUT_MS)
+    const projectRootLike = req.body?.projectRoot || req.body?.projectName || DEFAULT_PROJECT_ROOT
+    const { projectRoot } = resolveProjectPaths(projectRootLike)
+    const upstreamBody = { ...req.body, projectRoot }
+    const out = await proxyArduinoWithCompileFallback('/validate', upstreamBody, ARDUINO_VALIDATE_TIMEOUT_MS)
     if (out.autoInstall && out.data && typeof out.data === 'object') {
       out.data.autoInstall = out.autoInstall
     }
@@ -479,7 +495,10 @@ app.post('/arduino/validate', async (req, res) => {
 
 app.post('/arduino/build', async (req, res) => {
   try {
-    const out = await proxyArduinoWithCompileFallback('/build', req.body, ARDUINO_BUILD_TIMEOUT_MS)
+    const projectRootLike = req.body?.projectRoot || req.body?.projectName || DEFAULT_PROJECT_ROOT
+    const { projectRoot } = resolveProjectPaths(projectRootLike)
+    const upstreamBody = { ...req.body, projectRoot }
+    const out = await proxyArduinoWithCompileFallback('/build', upstreamBody, ARDUINO_BUILD_TIMEOUT_MS)
     if (out.autoInstall && out.data && typeof out.data === 'object') {
       out.data.autoInstall = out.autoInstall
     }
@@ -622,7 +641,25 @@ app.post('/arduino/flash', async (req, res) => {
     }
 
     const uploadArgs = ['upload', '-p', port, '--fqbn', fqbn, projectRoot]
-    const uploadResult = await runCommand('arduino-cli', uploadArgs, ARDUINO_FLASH_TIMEOUT_MS)
+    let uploadResult = await runCommand('arduino-cli', uploadArgs, ARDUINO_FLASH_TIMEOUT_MS)
+    const uploadAttempts = [{ port, result: uploadResult }]
+    let finalPort = port
+
+    if (!uploadResult.ok && shouldRetryUploadWithAlternatePort(uploadResult.stderr)) {
+      const candidates = await listLikelySerialPorts()
+      for (const candidate of candidates) {
+        if (candidate === port) continue
+        const retryArgs = ['upload', '-p', candidate, '--fqbn', fqbn, projectRoot]
+        const retryResult = await runCommand('arduino-cli', retryArgs, ARDUINO_FLASH_TIMEOUT_MS)
+        uploadAttempts.push({ port: candidate, result: retryResult })
+        if (retryResult.ok) {
+          uploadResult = retryResult
+          finalPort = candidate
+          break
+        }
+      }
+    }
+
     if (!uploadResult.ok) {
       res.status(500).json({
         ok: false,
@@ -631,6 +668,7 @@ app.post('/arduino/flash', async (req, res) => {
         projectRoot,
         fqbn,
         port,
+        uploadAttempts,
         compile: compileResult,
         command: `arduino-cli ${uploadArgs.join(' ')}`,
         ...uploadResult
@@ -643,7 +681,8 @@ app.post('/arduino/flash', async (req, res) => {
       projectName,
       projectRoot,
       fqbn,
-      port,
+      port: finalPort,
+      uploadAttempts,
       compile: compileResult,
       upload: uploadResult
     })
