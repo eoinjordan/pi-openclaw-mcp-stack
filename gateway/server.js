@@ -416,33 +416,58 @@ async function tryAutoInstallFromMissingHeader(missingHeader, timeoutMs) {
   return tryInstallArduinoLibrary(libraryName, timeoutMs)
 }
 
-async function proxyArduinoWithEiZipFallback(pathname, body, timeoutMs) {
+function normalizeAutoInstallReport(steps) {
+  if (!Array.isArray(steps) || steps.length === 0) return null
+  return steps.length === 1 ? steps[0] : steps
+}
+
+async function proxyArduinoWithCompileFallback(pathname, body, timeoutMs) {
+  const autoInstallSteps = []
+  const attemptedHeaders = new Set()
   try {
     const r = await axios.post(`${ARDUINO_MCP}${pathname}`, body, { timeout: timeoutMs })
     return { ok: true, data: r.data }
   } catch (e) {
-    if (!shouldRetryWithCompileFallback(e)) throw e
-    const missingHeader = parseMissingHeader(e?.response?.data?.stderr || '')
-    const autoInstall = await tryAutoInstallFromMissingHeader(missingHeader, timeoutMs)
-    if (!autoInstall) throw e
-    if (!autoInstall.ok) {
-      const data = e?.response?.data
-      if (data && typeof data === 'object') {
-        data.autoInstall = autoInstall
-        const wrapped = new Error('Arduino MCP compile failed and auto-install fallback failed')
-        wrapped.response = { status: e?.response?.status || 500, data }
-        throw wrapped
+    let lastError = e
+    for (let i = 0; i < 3; i += 1) {
+      if (!shouldRetryWithCompileFallback(lastError)) break
+      const missingHeader = parseMissingHeader(lastError?.response?.data?.stderr || '')
+      if (!missingHeader || attemptedHeaders.has(missingHeader)) break
+      attemptedHeaders.add(missingHeader)
+
+      const autoInstall = await tryAutoInstallFromMissingHeader(missingHeader, timeoutMs)
+      if (!autoInstall) break
+      autoInstallSteps.push(autoInstall)
+      if (!autoInstall.ok) {
+        const data = lastError?.response?.data
+        if (data && typeof data === 'object') {
+          data.autoInstall = normalizeAutoInstallReport(autoInstallSteps)
+          const wrapped = new Error('Arduino MCP compile failed and auto-install fallback failed')
+          wrapped.response = { status: lastError?.response?.status || 500, data }
+          throw wrapped
+        }
+        throw lastError
       }
-      throw e
+
+      try {
+        const r = await axios.post(`${ARDUINO_MCP}${pathname}`, body, { timeout: timeoutMs })
+        return { ok: true, data: r.data, autoInstall: normalizeAutoInstallReport(autoInstallSteps) }
+      } catch (retryError) {
+        lastError = retryError
+      }
     }
-    const r = await axios.post(`${ARDUINO_MCP}${pathname}`, body, { timeout: timeoutMs })
-    return { ok: true, data: r.data, autoInstall }
+
+    const data = lastError?.response?.data
+    if (data && typeof data === 'object' && autoInstallSteps.length > 0) {
+      data.autoInstall = normalizeAutoInstallReport(autoInstallSteps)
+    }
+    throw lastError
   }
 }
 
 app.post('/arduino/validate', async (req, res) => {
   try {
-    const out = await proxyArduinoWithEiZipFallback('/validate', req.body, ARDUINO_VALIDATE_TIMEOUT_MS)
+    const out = await proxyArduinoWithCompileFallback('/validate', req.body, ARDUINO_VALIDATE_TIMEOUT_MS)
     if (out.autoInstall && out.data && typeof out.data === 'object') {
       out.data.autoInstall = out.autoInstall
     }
@@ -454,7 +479,7 @@ app.post('/arduino/validate', async (req, res) => {
 
 app.post('/arduino/build', async (req, res) => {
   try {
-    const out = await proxyArduinoWithEiZipFallback('/build', req.body, ARDUINO_BUILD_TIMEOUT_MS)
+    const out = await proxyArduinoWithCompileFallback('/build', req.body, ARDUINO_BUILD_TIMEOUT_MS)
     if (out.autoInstall && out.data && typeof out.data === 'object') {
       out.data.autoInstall = out.autoInstall
     }
@@ -567,24 +592,18 @@ app.post('/arduino/flash', async (req, res) => {
 
     const compileArgs = ['compile', '--fqbn', fqbn, projectRoot]
     let compileResult = await runCommand('arduino-cli', compileArgs, ARDUINO_FLASH_TIMEOUT_MS)
-    let autoInstall = null
+    const autoInstallSteps = []
+    const attemptedHeaders = new Set()
 
-    if (!compileResult.ok) {
+    for (let i = 0; i < 3 && !compileResult.ok; i += 1) {
       const missingHeader = parseMissingHeader(compileResult.stderr)
-      if (missingHeader.endsWith('_inferencing.h')) {
-        autoInstall = await tryInstallEiLibraryFromZip(ARDUINO_FLASH_TIMEOUT_MS)
-        if (autoInstall.ok) {
-          compileResult = await runCommand('arduino-cli', compileArgs, ARDUINO_FLASH_TIMEOUT_MS)
-        }
-      } else {
-        const libraryName = missingHeaderLibraryName(missingHeader)
-        if (libraryName) {
-          autoInstall = await tryInstallArduinoLibrary(libraryName, ARDUINO_FLASH_TIMEOUT_MS)
-          if (autoInstall.ok) {
-            compileResult = await runCommand('arduino-cli', compileArgs, ARDUINO_FLASH_TIMEOUT_MS)
-          }
-        }
-      }
+      if (!missingHeader || attemptedHeaders.has(missingHeader)) break
+      attemptedHeaders.add(missingHeader)
+      const autoInstall = await tryAutoInstallFromMissingHeader(missingHeader, ARDUINO_FLASH_TIMEOUT_MS)
+      if (!autoInstall) break
+      autoInstallSteps.push(autoInstall)
+      if (!autoInstall.ok) break
+      compileResult = await runCommand('arduino-cli', compileArgs, ARDUINO_FLASH_TIMEOUT_MS)
     }
 
     if (!compileResult.ok) {
@@ -596,7 +615,7 @@ app.post('/arduino/flash', async (req, res) => {
         fqbn,
         port,
         command: `arduino-cli ${compileArgs.join(' ')}`,
-        autoInstall,
+        autoInstall: normalizeAutoInstallReport(autoInstallSteps),
         ...compileResult
       })
       return
