@@ -252,6 +252,7 @@ Telegram -> clawdbot -> openclaw-gateway
 - Architecture deep dive: `docs/architecture.md`
 - EI to Nano 33 BLE deployment flow: `docs/ei-arduino-deploy.md`
 - Full first-project to flash flow: `docs/pi5-ei-to-nano33ble.md`
+- UNO Q MWC custom sensor demo setup: `docs/unoq-mwc-demo.md`
 - Local Ollama setup for Pi 5: `docs/ollama.md`
 - Jetson + Rubik Pi hardware setup scripts: `docs/hardware-acceleration-host-setup.md`
 - Kubernetes distributed deployment + hardware acceleration guide: `docs/kubernetes-distributed-acceleration.md`
