@@ -1,0 +1,14 @@
+apiVersion: v2
+name: agentic-mcp
+description: Agentic MCP Server with local LLM for Pi clusters
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - mcp
+  - llm
+  - raspberry-pi
+  - kubernetes
+maintainers:
+  - name: maintainer
+    url: https://github.com/your-org/your-repo

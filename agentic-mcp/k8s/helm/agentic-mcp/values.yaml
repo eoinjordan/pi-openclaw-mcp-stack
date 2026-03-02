@@ -1,0 +1,104 @@
+# Default values for agentic-mcp
+
+replicaCount: 3
+
+image:
+  repository: agentic-mcp
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  httpPort: 80
+  stdioPort: 8081
+  # For LoadBalancer:
+  # type: LoadBalancer
+  # loadBalancerIP: 192.168.1.240
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: mcp.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: agentic-mcp-tls
+      hosts:
+        - mcp.yourdomain.com
+
+resources:
+  limits:
+    cpu: "4"
+    memory: 8Gi
+    # nvidia.com/gpu: 1
+  requests:
+    cpu: "2"
+    memory: 4Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+  # - key: "gpu"
+  #   operator: "Exists"
+  #   effect: "NoSchedule"
+
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      preference:
+        matchExpressions:
+        - key: hardware
+          operator: In
+          values:
+          - gpu
+
+# LLM Configuration
+config:
+  llmProvider: "huggingface"
+  defaultModel: "Qwen/Qwen2.5-Coder-7B-Instruct"
+  adapterRepo: "<your-hf-username>/EdgeAI-Docs-Qwen2.5-Coder-7B-Instruct"
+  tools: "all"
+
+# Storage
+persistence:
+  enabled: true
+  storageClass: nfs
+  modelCache:
+    size: 50Gi
+  workspace:
+    size: 10Gi

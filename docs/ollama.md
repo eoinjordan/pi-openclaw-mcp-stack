@@ -63,3 +63,15 @@ ollama list
 - This only changes free-text chat behavior in `clawdbot`.
 - MCP tool routing (`/arduino/*`, `/ei/run`) is unchanged.
 - In Telegram, send `models` to check the active model and discovered Ollama models.
+
+## Alternative: Agentic MCP Server
+
+For a full MCP server with local LLM + tools (file ops, Arduino, EI), see `agentic-mcp/`:
+
+```bash
+# Setup
+bash scripts/setup-agentic-mcp.sh
+
+# Run (uses Ollama by default on Pi)
+python3 -m agentic_mcp.server --llm-provider ollama
+```

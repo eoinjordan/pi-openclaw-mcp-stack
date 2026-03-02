@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentic-mcp-config
+  namespace: default
+data:
+  LLM_PROVIDER: "huggingface"
+  DEFAULT_MODEL: "Qwen/Qwen2.5-Coder-7B-Instruct"
+  ADAPTER_REPO: "<your-hf-username>/EdgeAI-Docs-Qwen2.5-Coder-7B-Instruct"
+  TOOLS: "all"
+  LOG_LEVEL: "info"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-cache-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs  # Change to longhorn, openebs-nfs, or your storage class
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: workspace-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 10Gi

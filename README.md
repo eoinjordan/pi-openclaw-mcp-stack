@@ -389,8 +389,41 @@ This repo includes Codex skills for Pi users under `skills/`.
 
 Skill discovery rules are in `AGENTS.md`.
 
+## Agentic MCP Server (Local LLM + Tools)
+
+A standalone MCP server with local LLM support for Pi 5 or GPU laptops. Located in `agentic-mcp/`.
+
+### Quick Setup
+
+```bash
+# Run the setup script (installs Python, arduino-cli, Ollama/HuggingFace deps)
+bash scripts/setup-agentic-mcp.sh
+```
+
+### Hardware-Specific
+
+| Hardware | LLM | Setup Command |
+|----------|-----|---------------|
+| Pi 5 | Ollama (qwen2.5:3b) | `python3 -m agentic_mcp.server --llm-provider ollama` |
+| GPU Laptop | HuggingFace + LoRA | `python3 -m agentic_mcp.server --llm-provider huggingface --adapter <your-hf-username>/EdgeAI-Docs-Qwen2.5-Coder-7B-Instruct` |
+
+### Add to Claude Code
+
+```bash
+claude mcp add agentic-mcp -- python3 -m agentic_mcp.server
+```
+
+### Available Tools
+
+- **System**: execute_command, read_file, write_file, list_directory, search_files, get_system_info, check_url
+- **Arduino**: list_arduino_boards, list_connected_boards, install_arduino_core, compile_arduino, upload_arduino
+- **Edge Impulse**: ei_list_projects, ei_get_project, ei_list_deployments, ei_create_deployment
+
+See `agentic-mcp/README.md` for full documentation.
+
 ## References
 
+- EdgeAI Docs LoRA Adapter: `https://huggingface.co/<your-hf-username>/EdgeAI-Docs-Qwen2.5-Coder-7B-Instruct`
 
 New project is a custom docs llm that will integrate and be used locally:
 <img width="1644" height="801" alt="image" src="https://github.com/user-attachments/assets/85f03214-05fa-46b0-8e65-26c8920d6de7" />
