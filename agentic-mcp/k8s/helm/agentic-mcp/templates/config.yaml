@@ -1,0 +1,44 @@
+{{- if .Values.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "agentic-mcp.fullname" . }}-models
+  labels:
+    {{- include "agentic-mcp.labels" . | nindent 4 }}
+    component: models
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: {{ .Values.persistence.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.modelCache.size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "agentic-mcp.fullname" . }}-workspace
+  labels:
+    {{- include "agentic-mcp.labels" . | nindent 4 }}
+    component: workspace
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: {{ .Values.persistence.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.workspace.size }}
+{{- end }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "agentic-mcp.fullname" . }}-config
+  labels:
+    {{- include "agentic-mcp.labels" . | nindent 4 }}
+data:
+  LLM_PROVIDER: {{ .Values.config.llmProvider | quote }}
+  DEFAULT_MODEL: {{ .Values.config.defaultModel | quote }}
+  ADAPTER_REPO: {{ .Values.config.adapterRepo | quote }}
+  TOOLS: {{ .Values.config.tools | quote }}

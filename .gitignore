@@ -4,3 +4,7 @@ node_modules/
 *.log
 issues.md
 progress.md
+plan.md
+__pycache__/
+*.pyc
+*.egg-info/

@@ -1,0 +1,39 @@
+{
+  "_comment": "Add to ~/.claude.json (Claude Code) or ~/.openclaw/openclaw.json (OpenClaw)",
+  "_comment2": "For Claude Code CLI: claude mcp add agentic-mcp -- python3 /path/to/agentic-mcp/server.py",
+  "_usage": {
+    "claude_code": [
+      "claude mcp add agentic-mcp -- python3 /path/to/agentic-mcp/server.py --llm-provider huggingface"
+    ],
+    "openclaw": [
+      "openclaw mcp add agentic-mcp -- python3 /path/to/agentic-mcp/server.py --llm-provider huggingface"
+    ]
+  },
+  "mcpServers": {
+    "agentic-mcp": {
+      "command": "python3",
+      "args": [
+        "-m",
+        "agentic_mcp.server",
+        "--llm-provider",
+        "huggingface",
+        "--adapter",
+        "<your-hf-username>/EdgeAI-Docs-Qwen2.5-Coder-7B-Instruct"
+      ],
+      "env": {
+        "EI_API_KEY": "${EI_API_KEY}"
+      }
+    }
+  },
+  "_env_vars": {
+    "EI_API_KEY": "Edge Impulse API key (optional, for EI tools)",
+    "HF_TOKEN": "HuggingFace token for private models (optional)"
+  },
+  "_example_prompts": [
+    "List all Arduino boards connected via USB",
+    "Compile the Blink sketch for my Nano 33 BLE",
+    "Show me system info about this machine",
+    "List my Edge Impulse projects",
+    "Search for Python files in the current directory"
+  ]
+}

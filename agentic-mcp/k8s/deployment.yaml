@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentic-mcp
+  namespace: default
+  labels:
+    app: agentic-mcp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: agentic-mcp
+  template:
+    metadata:
+      labels:
+        app: agentic-mcp
+    spec:
+      # Prefer GPU nodes for inference, fallback to any worker
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: hardware
+                operator: In
+                values:
+                - gpu
+      tolerations:
+      - key: "gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+
+      containers:
+      - name: mcp
+        image: agentic-mcp:latest  # Change to your registry
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8081
+          name: stdio
+
+        envFrom:
+        - configMapRef:
+            name: agentic-mcp-config
+        - secretRef:
+            name: agentic-mcp-secret  # Optional: for HF token, EI_API_key
+
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+            # nvidia.com/gpu: 1  # Uncomment if using GPU nodes
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+            # nvidia.com/gpu: 1  # Uncomment if using GPU nodes
+
+        volumeMounts:
+        - name: models
+          mountPath: /models
+          readOnly: true
+        - name: workspace
+          mountPath: /workspace
+        - name: device
+          mountPath: /dev
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+
+      volumes:
+      - name: models
+        persistentVolumeClaim:
+          claimName: model-cache-pvc
+      - name: workspace
+        persistentVolumeClaim:
+          claimName: workspace-pvc
+      - name: device
+        hostPath:
+          path: /dev
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentic-mcp
+  namespace: default
+spec:
+  selector:
+    app: agentic-mcp
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: stdio
+    port: 8081
+    targetPort: 8081
+  type: ClusterIP
+  # type: LoadBalancer  # Use for external access
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: agentic-mcp-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: agentic-mcp
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

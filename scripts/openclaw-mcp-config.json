@@ -1,0 +1,39 @@
+{
+  "_comment": "Paste the 'mcpServers' block below into your OpenClaw config (~/.openclaw/openclaw.json)",
+  "_comment2": "Or for Claude Code / pi-openclaw-mcp-stack, add to ~/.claude.json or run the mcp add commands",
+  "_usage": {
+    "openclaw": [
+      "openclaw mcp add edge-impulse -- edge-impulse-mcp",
+      "openclaw mcp add arduino -- python3 /path/to/ei-arduino-skill/scripts/arduino_mcp.py"
+    ],
+    "claude_code": [
+      "claude mcp add edge-impulse -- edge-impulse-mcp",
+      "claude mcp add arduino -- python3 /path/to/ei-arduino-skill/scripts/arduino_mcp.py"
+    ]
+  },
+  "mcpServers": {
+    "edge-impulse": {
+      "command": "edge-impulse-mcp",
+      "args": [],
+      "env": {
+        "EI_API_KEY": "${EI_API_KEY}",
+        "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}"
+      }
+    },
+    "arduino": {
+      "command": "python3",
+      "args": ["/path/to/ei-arduino-skill/scripts/arduino_mcp.py"],
+      "env": {}
+    }
+  },
+  "_env_vars": {
+    "EI_API_KEY": "Your Edge Impulse API key — get from https://studio.edgeimpulse.com/studio/<project>/keys",
+    "ANTHROPIC_API_KEY": "Your Anthropic API key — get from https://console.anthropic.com/settings/keys"
+  },
+  "_example_prompts": [
+    "Export the Arduino library for Edge Impulse project 123456 and flash it to my Nano 33 BLE Sense on /dev/ttyACM0",
+    "Build and deploy EI project 789 to the ESP32 on /dev/ttyUSB0 with a motion classification sketch",
+    "Re-flash the last build of project 42 to /dev/ttyACM0 and show me 10 serial lines",
+    "Download the EI model for project 555 as Arduino ZIP — don't flash yet, I'll do it manually"
+  ]
+}
