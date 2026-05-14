@@ -370,6 +370,95 @@ Check installed models:
 ollama list
 ```
 
+## Local LLM with llama.cpp (Qwen LoRA Adapter)
+
+By default the agentic coding CLIs (OpenCode, Claude Code) connect to cloud-hosted LLMs. If you need fully offline operation — no API keys, no internet — you can serve a local LLM via llama.cpp and point the CLI at it instead.
+
+A Q4_K_M GGUF of the fine-tuned Qwen2.5-Coder-0.5B-Instruct adapter (trained on 1,794 Edge Impulse documentation files) is published at [`eoinedge/edgeai-docs-qwen2.5-coder-0.5b-lora`](https://huggingface.co/eoinedge/edgeai-docs-qwen2.5-coder-0.5b-lora).
+
+### 1. Get the GGUF
+
+**Fast path — download the pre-built GGUF (~398 MB):**
+
+```bash
+wget -P ~ https://huggingface.co/eoinedge/edgeai-docs-qwen2.5-coder-0.5b-lora/resolve/main/qwen-edgeai-q4_k_m.gguf
+```
+
+<details>
+<summary>Build from source (optional — only if you need a different quantisation)</summary>
+
+Run inside the Ubuntu VM (the stack's sandbox container already has Python 3.12 and pip available):
+
+```bash
+pip install transformers peft torch sentencepiece
+sudo apt install -y cmake build-essential
+
+git clone https://github.com/ggerganov/llama.cpp ~/llama.cpp
+cd ~/llama.cpp && cmake -B build && cmake --build build --config Release -j$(nproc)
+
+# Clone the repo over HTTPS (no SSH key needed)
+# Skip if already cloned — cd in and git pull instead
+git clone https://github.com/edgeimpulse/ei-agentic-stack.git ~/ei-agentic-stack
+cd ~/ei-agentic-stack
+
+python3 scripts/merge_qwen_to_gguf.py \
+  --llama-cpp-dir ~/llama.cpp \
+  --output-dir ~/qwen-edgeai-merged \
+  --gguf-out ~/qwen-edgeai-q4.gguf
+```
+
+The script merges the LoRA adapter into the base model, converts to F16 GGUF, then quantizes to Q4_K_M via `llama-quantize`.
+
+</details>
+
+### 2. Build llama.cpp and start the server
+
+```bash
+# Build (skip if already done)
+sudo apt install -y cmake build-essential
+git clone https://github.com/ggerganov/llama.cpp ~/llama.cpp
+cd ~/llama.cpp && cmake -B build && cmake --build build --config Release -j$(nproc)
+
+# Start
+~/llama.cpp/build/bin/llama-server \
+  --model ~/qwen-edgeai-q4_k_m.gguf \
+  --host 127.0.0.1 --port 8081 \
+  --ctx-size 4096 \
+  --n-predict 512
+```
+
+This exposes an OpenAI-compatible API at `http://localhost:8081/v1`.
+
+### 3. Point the agentic CLI at the local server
+
+**OpenCode** (`opencode/opencode.json`):
+
+```json
+{
+  "model": "local/qwen-edgeai",
+  "provider": {
+    "openai": {
+      "baseURL": "http://localhost:8081/v1",
+      "apiKey": "local"
+    }
+  }
+}
+```
+
+The MCP server itself is unaffected — it still connects to the Edge Impulse API through the proxy. Only the LLM that drives tool-calling decisions is replaced by the local model.
+
+> [!NOTE]
+> The 0.5B model handles straightforward Edge Impulse API and docs questions well. For multi-step agentic tasks requiring complex reasoning, consider a larger quantized model (3B+) at the cost of slower inference on CPU.
+
+See the full setup guide (Raspberry Pi and Rubik Pi 3 walkthrough, RAG extension, Arduino companion adapter) at: [`eoinjordan/pi-openclaw-mcp-stack`](https://github.com/eoinjordan/pi-openclaw-mcp-stack)
+
+## Next Steps
+
+- Add full examples for Cursor and Copilot configuration once the upstream docs are published.
+- Provide automated build/test scripts for the Docker images.
+- Include architecture diagrams and sample `curl` smoke tests for the `/mcp` endpoint.
+
+
 In Telegram, send `models` to verify what `clawdbot` sees.
 If you see `no configuration file provided: not found`, run compose commands from the repo root:
 
